@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum PersonType {
+  actor
+  celebrity
+  musician
+  athlete
+  other
+}
+
+enum CharacterType {
+  protagonist
+  supporting
+  antagonist
+  cameo
+  other
+}
+
+enum TitleType {
+  film
+  tv_series
+  tv_movie
+  animated
+  short
+  documentary
+  other
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Person {
+  id          Int        @id @default(autoincrement())
+  name        String
+  personType  PersonType @default(actor)
+  birthYear   Int?
+  deathYear   Int?
+  nationality String?
+  bio         String?
+  imageUrl    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  castings Casting[]
+
+  @@map("persons")
+}
+
+model Character {
+  id            Int           @id @default(autoincrement())
+  name          String
+  characterType CharacterType @default(supporting)
+  description   String?
+  imageUrl      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  castings Casting[]
+
+  @@map("characters")
+}
+
+model Title {
+  id          Int       @id @default(autoincrement())
+  name        String
+  year        Int?
+  titleType   TitleType @default(film)
+  genre       String?
+  description String?
+  runtime     Int?      // in minutes
+  imageUrl    String?   // poster/thumbnail
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  episodes Episode[]
+  castings Casting[]
+
+  @@map("titles")
+}
+
+model Episode {
+  id            Int      @id @default(autoincrement())
+  titleId       Int
+  season        Int?
+  episodeNumber Int?
+  episodeTitle  String?
+  description   String?
+  runtime       Int?     // in minutes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  title    Title     @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  castings Casting[]
+
+  @@map("episodes")
+}
+
+// Casting is the join table connecting Person → Character → Title (→ Episode)
+// A person plays a character in a specific title, optionally in a specific episode
+model Casting {
+  id          Int      @id @default(autoincrement())
+  personId    Int
+  characterId Int
+  titleId     Int
+  episodeId   Int?     // null = full film/movie; set = specific episode
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  person    Person    @relation(fields: [personId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
+  title     Title     @relation(fields: [titleId], references: [id])
+  episode   Episode?  @relation(fields: [episodeId], references: [id])
+
+  @@unique([personId, characterId, titleId, episodeId])
+  @@map("castings")
+}
