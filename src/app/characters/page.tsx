@@ -24,7 +24,7 @@ export default async function CharactersPage() {
       <div className="grid sm:grid-cols-2 gap-6">
         {characters.map((character) => {
           // Unique actors for this character
-          const actors = [...new Map(character.castings.map((c) => [c.personId, c.person])).values()]
+          const actors = Array.from(new Map(character.castings.map((c) => [c.personId, c.person])).values())
 
           return (
             <Link

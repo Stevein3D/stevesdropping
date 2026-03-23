@@ -100,7 +100,7 @@ export default async function PeoplePage({
               <p className="text-xs text-sky-500">
                 {person.castings.length} casting{person.castings.length !== 1 ? 's' : ''}
                 {' · '}
-                {[...new Set(person.castings.map((c) => c.character.name))].join(', ')}
+                {Array.from(new Set(person.castings.map((c) => c.character.name))).join(', ')}
               </p>
             )}
           </Link>

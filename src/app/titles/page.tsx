@@ -78,8 +78,8 @@ export default async function TitlesPage({
       {/* List */}
       <div className="space-y-3">
         {titles.map((title) => {
-          const uniqueChars = [...new Set(title.castings.map((c) => c.character.name))]
-          const uniquePeople = [...new Set(title.castings.map((c) => c.person.name))]
+          const uniqueChars = Array.from(new Set(title.castings.map((c) => c.character.name)))
+          const uniquePeople = Array.from(new Set(title.castings.map((c) => c.person.name)))
 
           return (
             <Link
