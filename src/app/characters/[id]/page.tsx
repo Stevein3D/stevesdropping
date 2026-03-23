@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const character = await prisma.character.findUnique({ where: { id: parseInt(params.id) } })
   return { title: character ? `${character.name} — Stevesdropping` : 'Not Found' }

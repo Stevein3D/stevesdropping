@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Characters — Stevesdropping' }
 
 export default async function CharactersPage() {

@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Titles — Stevesdropping' }
 
 const TYPE_LABELS: Record<string, string> = {

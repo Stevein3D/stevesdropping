@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import type { PersonWithCastings } from '@/types'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'People — Stevesdropping' }
 
 export default async function PeoplePage({
