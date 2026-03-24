@@ -1,18 +1,19 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { TitleBadge } from '@/components/ui/TitleBadge'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Titles — Stevesdropping' }
 
 const TYPE_LABELS: Record<string, string> = {
-  film: 'Film',
-  tv_series: 'TV Series',
-  tv_movie: 'TV Movie',
-  animated: 'Animated',
-  short: 'Short',
-  documentary: 'Documentary',
-  other: 'Other',
+  film:          'Film',
+  tv_series:     'TV Series',
+  tv_movie:      'TV Movie',
+  animated:      'Animated',
+  short:         'Short',
+  documentary:   'Documentary',
+  other:         'Other',
 }
 
 export default async function TitlesPage({
@@ -38,9 +39,9 @@ export default async function TitlesPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Titles</h1>
-        <span className="text-sm text-gray-500">{titles.length} results</span>
+      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+        <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Titles</h1>
+        <span className="text-xs text-warm-500">{titles.length} results</span>
       </div>
 
       {/* Filters */}
@@ -49,12 +50,12 @@ export default async function TitlesPage({
           name="search"
           defaultValue={search}
           placeholder="Search titles…"
-          className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500 w-64"
+          className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-4 py-2 text-sm text-warm-900 dark:text-warm-200 placeholder-warm-500 focus:outline-none focus:border-steve w-64"
         />
         <select
           name="type"
           defaultValue={type ?? ''}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+          className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-4 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
         >
           <option value="">All types</option>
           {Object.entries(TYPE_LABELS).map(([val, label]) => (
@@ -63,65 +64,50 @@ export default async function TitlesPage({
         </select>
         <button
           type="submit"
-          className="bg-sky-600 hover:bg-sky-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          className="bg-steve hover:bg-steve-hover text-cream text-sm px-4 py-2 rounded-lg transition-colors"
         >
           Filter
         </button>
         {(search || type) && (
           <Link
             href="/titles"
-            className="text-sm text-gray-400 hover:text-white px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+            className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve transition-colors"
           >
             Clear
           </Link>
         )}
       </form>
 
-      {/* List */}
-      <div className="space-y-3">
+      {/* TV Guide list */}
+      <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
         {titles.map((title) => {
-          const uniqueChars = Array.from(new Set(title.castings.map((c) => c.character.name)))
+          const uniqueChars  = Array.from(new Set(title.castings.map((c) => c.character.name)))
           const uniquePeople = Array.from(new Set(title.castings.map((c) => c.person.name)))
+          const castingSummary = uniqueChars.length > 0
+            ? `${uniqueChars.join(', ')} · ${uniquePeople.join(', ')}`
+            : null
 
           return (
             <Link
               key={title.id}
               href={`/titles/${title.id}`}
-              className="flex items-start gap-4 bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-sky-500 transition-colors group"
+              className="grid grid-cols-[52px_1fr_auto] items-center gap-3 px-4 py-3 border-b border-cream-border dark:border-warm-700 bg-cream dark:bg-warm-800 hover:bg-cream-card dark:hover:bg-warm-50/5 transition-colors last:border-b-0"
             >
-              <div className="text-2xl font-bold text-gray-700 w-12 shrink-0 text-right tabular-nums">
-                {title.year}
-              </div>
-              <div className="space-y-1 flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-semibold text-white group-hover:text-sky-400 transition-colors">
-                    {title.name}
-                  </h2>
-                  <span className="text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">
-                    {TYPE_LABELS[title.titleType] ?? title.titleType}
-                  </span>
-                  {title.runtime && (
-                    <span className="text-xs text-gray-600">{title.runtime} min</span>
-                  )}
-                </div>
-                {title.description && (
-                  <p className="text-sm text-gray-500 line-clamp-1">{title.description}</p>
-                )}
-                {uniqueChars.length > 0 && (
-                  <p className="text-xs text-sky-600">
-                    {uniqueChars.join(', ')}
-                    {' · '}
-                    <span className="text-gray-600">{uniquePeople.join(', ')}</span>
-                  </p>
+              <span className="font-serif text-sm font-bold text-warm-500 tabular-nums">{title.year}</span>
+              <div>
+                <p className="text-sm font-medium text-warm-900 dark:text-warm-200">{title.name}</p>
+                {castingSummary && (
+                  <p className="text-xs text-warm-600 dark:text-warm-500 mt-0.5 truncate">{castingSummary}</p>
                 )}
               </div>
+              <TitleBadge type={title.titleType} />
             </Link>
           )
         })}
       </div>
 
       {titles.length === 0 && (
-        <p className="text-gray-500 text-center py-20">No titles found matching your search.</p>
+        <p className="text-warm-500 text-center py-20">No titles found matching your search.</p>
       )}
     </div>
   )

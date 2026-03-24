@@ -18,54 +18,49 @@ export default async function CharactersPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Characters</h1>
-        <span className="text-sm text-gray-500">{characters.length} results</span>
+      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+        <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Characters</h1>
+        <span className="text-xs text-warm-500">{characters.length} results</span>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-6">
+      <div className="grid sm:grid-cols-2 gap-4">
         {characters.map((character) => {
-          // Unique actors for this character
           const actors = Array.from(new Map(character.castings.map((c) => [c.personId, c.person])).values())
 
           return (
             <Link
               key={character.id}
               href={`/characters/${character.id}`}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-sky-500 transition-colors group space-y-3"
+              className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-4 hover:border-steve transition-colors"
             >
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="font-semibold text-lg text-white group-hover:text-sky-400 transition-colors">
-                  {character.name}
-                </h2>
-                <span className="text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5 capitalize shrink-0">
+              <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight mb-1">
+                {character.name}
+              </h2>
+              <p className="text-xs text-steve mb-2">
+                {character.castings.length} appearance{character.castings.length !== 1 ? 's' : ''}
+              </p>
+              {character.description && (
+                <p className="text-sm text-warm-600 dark:text-warm-500 line-clamp-2 mb-3">
+                  {character.description}
+                </p>
+              )}
+              {actors.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {actors.map((a) => (
+                    <span
+                      key={a.id}
+                      className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded"
+                    >
+                      {a.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3">
+                <span className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
                   {character.characterType}
                 </span>
               </div>
-
-              {character.description && (
-                <p className="text-sm text-gray-400 line-clamp-2">{character.description}</p>
-              )}
-
-              {actors.length > 0 && (
-                <div className="text-xs text-gray-500 space-y-1">
-                  <p className="text-gray-600">Played by:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {actors.map((a) => (
-                      <span
-                        key={a.id}
-                        className="bg-gray-800 rounded px-2 py-0.5 text-gray-300"
-                      >
-                        {a.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <p className="text-xs text-sky-500">
-                {character.castings.length} appearance{character.castings.length !== 1 ? 's' : ''}
-              </p>
             </Link>
           )
         })}

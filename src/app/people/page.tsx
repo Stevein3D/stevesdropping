@@ -28,9 +28,9 @@ export default async function PeoplePage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">People</h1>
-        <span className="text-sm text-gray-500">{people.length} results</span>
+      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+        <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">People</h1>
+        <span className="text-xs text-warm-500">{people.length} results</span>
       </div>
 
       {/* Filters */}
@@ -39,12 +39,12 @@ export default async function PeoplePage({
           name="search"
           defaultValue={search}
           placeholder="Search by name…"
-          className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500 w-64"
+          className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-4 py-2 text-sm text-warm-900 dark:text-warm-200 placeholder-warm-500 focus:outline-none focus:border-steve w-64"
         />
         <select
           name="type"
           defaultValue={type ?? ''}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+          className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-4 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
         >
           <option value="">All types</option>
           <option value="actor">Actor</option>
@@ -55,14 +55,14 @@ export default async function PeoplePage({
         </select>
         <button
           type="submit"
-          className="bg-sky-600 hover:bg-sky-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          className="bg-steve hover:bg-steve-hover text-cream text-sm px-4 py-2 rounded-lg transition-colors"
         >
           Filter
         </button>
         {(search || type) && (
           <Link
             href="/people"
-            className="text-sm text-gray-400 hover:text-white px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+            className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve transition-colors"
           >
             Clear
           </Link>
@@ -75,42 +75,32 @@ export default async function PeoplePage({
           <Link
             key={person.id}
             href={`/people/${person.id}`}
-            className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-sky-500 transition-colors group space-y-2"
+            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-4 hover:border-steve transition-colors"
           >
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="font-semibold text-white group-hover:text-sky-400 transition-colors leading-tight">
-                {person.name}
-              </h2>
-              <span className="text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5 shrink-0 capitalize">
-                {person.personType}
-              </span>
-            </div>
-
             {person.birthYear && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-warm-500 tracking-wide mb-1">
                 b. {person.birthYear}
                 {person.deathYear ? ` — d. ${person.deathYear}` : ''}
                 {person.nationality ? ` · ${person.nationality}` : ''}
               </p>
             )}
-
-            {person.bio && (
-              <p className="text-sm text-gray-400 line-clamp-2">{person.bio}</p>
-            )}
-
+            <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight mb-1">
+              {person.name}
+            </h2>
             {person.castings.length > 0 && (
-              <p className="text-xs text-sky-500">
+              <p className="text-xs text-steve mb-2">
                 {person.castings.length} casting{person.castings.length !== 1 ? 's' : ''}
-                {' · '}
-                {Array.from(new Set(person.castings.map((c) => c.character.name))).join(', ')}
               </p>
             )}
+            <span className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
+              {person.personType}
+            </span>
           </Link>
         ))}
       </div>
 
       {people.length === 0 && (
-        <p className="text-gray-500 text-center py-20">No people found matching your search.</p>
+        <p className="text-warm-500 text-center py-20">No people found matching your search.</p>
       )}
     </div>
   )

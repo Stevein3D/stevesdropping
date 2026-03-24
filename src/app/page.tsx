@@ -11,49 +11,50 @@ export default async function HomePage() {
     prisma.casting.count(),
   ])
 
+  const stats = [
+    { label: 'People', value: peopleCount, href: '/people' },
+    { label: 'Characters', value: characterCount, href: '/characters' },
+    { label: 'Titles', value: titleCount, href: '/titles' },
+    { label: 'Castings', value: castingCount, href: '/people' },
+  ]
+
   return (
-    <div className="space-y-12">
-      <section className="text-center space-y-4 pt-8">
-        <h1 className="text-5xl font-bold tracking-tight">
-          All Steves. <span className="text-sky-400">All the Time.</span>
+    <div>
+      <section className="py-8 border-b border-cream-border dark:border-warm-700 mb-8">
+        <p className="text-xs text-steve tracking-widest uppercase mb-2">The Steve Database</p>
+        <h1 className="font-serif text-5xl font-black leading-tight tracking-tight text-warm-900 dark:text-warm-200">
+          All Steves,<br />
+          <em className="text-steve">all the time.</em>
         </h1>
-        <p className="text-gray-400 text-lg max-w-xl mx-auto">
-          A database cataloging every Steve and Steven across film, television, and beyond —
+        <p className="text-sm text-warm-600 dark:text-warm-500 mt-3 max-w-md leading-relaxed">
+          A catalog of every Steve and Steven across film, television, and beyond —
           real people and the characters they play.
         </p>
-      </section>
-
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'People', value: peopleCount, href: '/people' },
-          { label: 'Characters', value: characterCount, href: '/characters' },
-          { label: 'Titles', value: titleCount, href: '/titles' },
-          { label: 'Castings', value: castingCount, href: '/people' },
-        ].map(({ label, value, href }) => (
-          <Link
-            key={label}
-            href={href}
-            className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center hover:border-sky-500 transition-colors group"
-          >
-            <div className="text-3xl font-bold text-sky-400 group-hover:text-sky-300">{value}</div>
-            <div className="text-sm text-gray-500 mt-1">{label}</div>
-          </Link>
-        ))}
+        <div className="flex gap-8 mt-6">
+          {stats.map(({ label, value, href }) => (
+            <Link key={label} href={href} className="group">
+              <div className="font-serif text-3xl font-bold text-steve leading-none group-hover:text-steve-hover transition-colors">{value}</div>
+              <div className="text-xs text-warm-500 tracking-widest uppercase mt-1">{label}</div>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="grid md:grid-cols-3 gap-4">
-        <Link href="/people" className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-sky-500 transition-colors">
-          <h2 className="font-semibold text-lg mb-1">Browse People</h2>
-          <p className="text-gray-500 text-sm">Actors and notable figures named Steve or Steven</p>
-        </Link>
-        <Link href="/characters" className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-sky-500 transition-colors">
-          <h2 className="font-semibold text-lg mb-1">Browse Characters</h2>
-          <p className="text-gray-500 text-sm">Fictional characters with the Steve name</p>
-        </Link>
-        <Link href="/titles" className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-sky-500 transition-colors">
-          <h2 className="font-semibold text-lg mb-1">Browse Titles</h2>
-          <p className="text-gray-500 text-sm">Films, TV shows, and more featuring Steves</p>
-        </Link>
+        {[
+          { href: '/people',     heading: 'Browse People',     body: 'Actors and notable figures named Steve or Steven' },
+          { href: '/characters', heading: 'Browse Characters', body: 'Fictional characters with the Steve name' },
+          { href: '/titles',     heading: 'Browse Titles',     body: 'Films, TV shows, and more featuring Steves' },
+        ].map(({ href, heading, body }) => (
+          <Link
+            key={href}
+            href={href}
+            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-6 hover:border-steve transition-colors"
+          >
+            <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 mb-1">{heading}</h2>
+            <p className="text-sm text-warm-600 dark:text-warm-500">{body}</p>
+          </Link>
+        ))}
       </section>
     </div>
   )

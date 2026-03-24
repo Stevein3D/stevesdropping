@@ -5,21 +5,35 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Stevesdropping palette — adjust as you develop the visual identity
-        brand: {
-          50:  '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          900: '#0c4a6e',
+        cream: {
+          DEFAULT: '#fdf6e3',
+          card:    '#fff8ee',
+          border:  '#e0c89a',
+          subtle:  '#ecdab0',
+        },
+        steve: {
+          DEFAULT: '#c94a1a',
+          hover:   '#a83a12',
+        },
+        warm: {
+          900: '#2a1a08',
+          800: '#1a1008',
+          700: '#3d2a10',
+          600: '#7a5230',
+          500: '#c4956a',
+          400: '#8a6040',
+          200: '#f0e2c4',
+          100: '#f0e0c0',
+          50:  '#fff8ee',
         },
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        serif: ['var(--font-playfair)', 'Georgia', 'serif'],
+        sans:  ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
       },
     },
   },

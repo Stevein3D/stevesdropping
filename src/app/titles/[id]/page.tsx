@@ -1,22 +1,13 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { TitleBadge } from '@/components/ui/TitleBadge'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const title = await prisma.title.findUnique({ where: { id: parseInt(params.id) } })
   return { title: title ? `${title.name} — Stevesdropping` : 'Not Found' }
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  film: 'Film',
-  tv_series: 'TV Series',
-  tv_movie: 'TV Movie',
-  animated: 'Animated',
-  short: 'Short',
-  documentary: 'Documentary',
-  other: 'Other',
 }
 
 export default async function TitlePage({ params }: { params: { id: string } }) {
@@ -42,96 +33,102 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
 
   if (!title) notFound()
 
-  // Film-level castings (no episode)
   const filmCastings = title.castings.filter((c) => !c.episodeId)
 
   return (
     <div className="space-y-10 max-w-3xl">
-      <div>
-        <Link href="/titles" className="text-sm text-gray-500 hover:text-white transition-colors">
-          ← Titles
-        </Link>
-      </div>
+      <Link href="/titles" className="text-sm text-warm-500 hover:text-steve transition-colors">
+        ← Titles
+      </Link>
 
       {/* Header */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-4xl font-bold">{title.name}</h1>
-          <span className="text-sm text-gray-500 border border-gray-700 rounded px-2 py-1">
-            {TYPE_LABELS[title.titleType] ?? title.titleType}
-          </span>
+      <div className="border-b border-cream-border dark:border-warm-700 pb-6">
+        <div className="flex items-baseline gap-3 flex-wrap mb-2">
+          <h1 className="font-serif text-4xl font-black text-warm-900 dark:text-warm-200">{title.name}</h1>
+          <TitleBadge type={title.titleType} />
         </div>
-        <p className="text-gray-500 text-sm">
+        <p className="text-sm text-warm-500">
           {[title.year, title.genre, title.runtime ? `${title.runtime} min` : null]
             .filter(Boolean)
             .join(' · ')}
         </p>
         {title.description && (
-          <p className="text-gray-300">{title.description}</p>
+          <p className="text-warm-600 dark:text-warm-500 mt-3 leading-relaxed">{title.description}</p>
         )}
       </div>
 
       {/* Film-level castings */}
       {filmCastings.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold border-b border-gray-800 pb-2">Steve Cast</h2>
-          <div className="space-y-3">
+          <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+            <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Steve Cast</h2>
+          </div>
+          <div className="space-y-2">
             {filmCastings.map((c) => (
-              <div key={c.id} className="flex items-center gap-4 bg-gray-900 rounded-lg px-4 py-3">
+              <div
+                key={c.id}
+                className="flex items-center gap-3 bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg px-4 py-3"
+              >
                 <Link
                   href={`/people/${c.personId}`}
-                  className="font-medium text-white hover:text-sky-400 transition-colors"
+                  className="font-serif font-bold text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
                 >
                   {c.person.name}
                 </Link>
-                <span className="text-gray-600 text-sm">as</span>
+                <span className="text-warm-500 text-sm">as</span>
                 <Link
                   href={`/characters/${c.characterId}`}
-                  className="text-sky-400 hover:underline text-sm"
+                  className="text-steve hover:text-steve-hover transition-colors text-sm font-medium"
                 >
                   {c.character.name}
                 </Link>
-                {c.notes && <span className="text-xs text-gray-500 ml-auto">{c.notes}</span>}
+                {c.notes && <span className="text-xs text-warm-500 ml-auto">{c.notes}</span>}
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* Episodes with Steve appearances */}
+      {/* Episodes */}
       {title.episodes.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold border-b border-gray-800 pb-2">
-            Episodes with Steve Appearances
-          </h2>
-          <div className="space-y-3">
+          <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+            <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
+              Episodes with Steve Appearances
+            </h2>
+          </div>
+          <div className="space-y-2">
             {title.episodes.map((ep) => (
-              <div key={ep.id} className="bg-gray-900 rounded-xl p-4 space-y-2">
+              <div
+                key={ep.id}
+                className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-4"
+              >
                 <div className="flex items-start gap-3">
-                  <span className="text-xs text-gray-600 border border-gray-800 rounded px-2 py-0.5 shrink-0 tabular-nums">
+                  <span className="font-serif text-xs font-bold text-warm-500 border border-cream-border dark:border-warm-700 rounded px-2 py-0.5 shrink-0 tabular-nums">
                     S{ep.season}E{ep.episodeNumber}
                   </span>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">
+                    <p className="text-sm font-medium text-warm-900 dark:text-warm-200">
                       {ep.episodeTitle ?? 'Untitled Episode'}
                     </p>
                     {ep.description && (
-                      <p className="text-xs text-gray-500 mt-1">{ep.description}</p>
+                      <p className="text-xs text-warm-500 mt-1">{ep.description}</p>
+                    )}
+                    {ep.castings.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        {ep.castings.map((c) => (
+                          <span key={c.id} className="text-xs text-warm-600 dark:text-warm-500">
+                            <span className="text-steve font-medium">{c.person.name}</span>
+                            {' '}as {c.character.name}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                   {ep.runtime && (
-                    <span className="text-xs text-gray-600 shrink-0">{ep.runtime} min</span>
+                    <span className="text-xs text-warm-500 shrink-0">{ep.runtime} min</span>
                   )}
                 </div>
-                {ep.castings.length > 0 && (
-                  <div className="pl-16 flex flex-wrap gap-2">
-                    {ep.castings.map((c) => (
-                      <span key={c.id} className="text-xs text-sky-500">
-                        {c.person.name} as {c.character.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -139,7 +136,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       )}
 
       {filmCastings.length === 0 && title.episodes.length === 0 && (
-        <p className="text-gray-500 text-sm">No Steve castings recorded yet.</p>
+        <p className="text-warm-500 text-sm">No Steve castings recorded yet.</p>
       )}
     </div>
   )
