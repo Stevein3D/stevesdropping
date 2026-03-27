@@ -27,7 +27,7 @@ export default async function HomePage() {
           <em className="text-steve">all the time.</em>
         </h1>
         <p className="text-sm text-warm-600 dark:text-warm-500 mt-3 max-w-md leading-relaxed">
-          A catalog of every Steve and Steven across film, television, and beyond —
+          A catalog of every Steve across film, television, and beyond —
           real people and the characters they play.
         </p>
         <div className="flex gap-8 mt-6">

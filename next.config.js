@@ -6,6 +6,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'image.tmdb.org', // for future TMDB poster integration
       },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+      },
     ],
   },
 }

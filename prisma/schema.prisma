@@ -116,6 +116,7 @@ model Casting {
   titleId     Int
   episodeId   Int?     // null = full film/movie; set = specific episode
   notes       String?
+  imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

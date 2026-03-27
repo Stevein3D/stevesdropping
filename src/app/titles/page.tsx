@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 
 export const dynamic = 'force-dynamic'
@@ -91,11 +92,23 @@ export default async function TitlesPage({
             <Link
               key={title.id}
               href={`/titles/${title.id}`}
-              className="grid grid-cols-[52px_1fr_auto] items-center gap-3 px-4 py-3 border-b border-cream-border dark:border-warm-700 bg-cream dark:bg-warm-800 hover:bg-cream-card dark:hover:bg-warm-50/5 transition-colors last:border-b-0"
+              className="grid grid-cols-[44px_52px_1fr_auto] items-center gap-3 px-3 py-2 border-b border-cream-border dark:border-warm-700 bg-cream dark:bg-warm-800 hover:bg-cream-card dark:hover:bg-warm-50/5 transition-colors last:border-b-0"
             >
+              {/* Poster thumbnail */}
+              <div className="aspect-[2/3] relative rounded overflow-hidden bg-warm-100 dark:bg-warm-700 shrink-0">
+                {title.imageUrl && (
+                  <Image
+                    src={title.imageUrl}
+                    alt={title.name}
+                    fill
+                    className="object-cover"
+                    sizes="44px"
+                  />
+                )}
+              </div>
               <span className="font-serif text-sm font-bold text-warm-500 tabular-nums">{title.year}</span>
-              <div>
-                <p className="text-sm font-medium text-warm-900 dark:text-warm-200">{title.name}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-warm-900 dark:text-warm-200 truncate">{title.name}</p>
                 {castingSummary && (
                   <p className="text-xs text-warm-600 dark:text-warm-500 mt-0.5 truncate">{castingSummary}</p>
                 )}

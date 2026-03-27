@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import Image from 'next/image'
 import type { PersonWithCastings } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -70,31 +71,49 @@ export default async function PeoplePage({
       </form>
 
       {/* Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {people.map((person) => (
           <Link
             key={person.id}
             href={`/people/${person.id}`}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-4 hover:border-steve transition-colors"
+            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve transition-colors"
           >
-            {person.birthYear && (
-              <p className="text-xs text-warm-500 tracking-wide mb-1">
-                b. {person.birthYear}
-                {person.deathYear ? ` — d. ${person.deathYear}` : ''}
-                {person.nationality ? ` · ${person.nationality}` : ''}
-              </p>
-            )}
-            <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight mb-1">
-              {person.name}
-            </h2>
-            {person.castings.length > 0 && (
-              <p className="text-xs text-steve mb-2">
-                {person.castings.length} casting{person.castings.length !== 1 ? 's' : ''}
-              </p>
-            )}
-            <span className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
-              {person.personType}
-            </span>
+            {/* Photo */}
+            <div className="aspect-[3/4] relative bg-warm-100 dark:bg-warm-700">
+              {person.imageUrl ? (
+                <Image
+                  src={person.imageUrl}
+                  alt={person.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                />
+              ) : (
+                <div className="w-full h-full flex items-end p-2">
+                  <span className="text-[10px] text-warm-400">No photo</span>
+                </div>
+              )}
+            </div>
+            {/* Text */}
+            <div className="p-3">
+              {person.birthYear && (
+                <p className="text-xs text-warm-500 tracking-wide mb-0.5">
+                  b. {person.birthYear}
+                  {person.deathYear ? ` — d. ${person.deathYear}` : ''}
+                </p>
+              )}
+              <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight mb-1">
+                {person.name}
+              </h2>
+              {person.castings.length > 0 && (
+                <p className="text-xs text-steve mb-1.5">
+                  {person.castings.length} casting{person.castings.length !== 1 ? 's' : ''}
+                </p>
+              )}
+              <span className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
+                {person.personType}
+              </span>
+            </div>
           </Link>
         ))}
       </div>

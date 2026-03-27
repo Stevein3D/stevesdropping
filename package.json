@@ -13,13 +13,17 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "db:reset": "prisma migrate reset --force"
+    "db:reset": "prisma migrate reset --force",
+    "images:upload": "tsx scripts/upload-images.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "dotenv": "^17.3.1",
+    "imagekit": "^6.0.0",
     "next": "14.2.18",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20",
