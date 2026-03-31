@@ -19,6 +19,13 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'Stevesdropping — All Steves, All the Time',
   description: 'A database cataloging every Steve and Steven across film, television, and beyond.',
+  icons: {
+    icon: [
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/favicon.ico', sizes: '48x48' },
+    ],
+    apple: '/apple-icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,9 +34,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');})();` }} />
       </head>
-      <body className={`${playfair.variable} ${dmSans.variable} font-sans antialiased bg-cream text-warm-900 dark:bg-warm-800 dark:text-warm-200 min-h-screen`}>
+      <body className={`${playfair.variable} ${dmSans.variable} font-sans antialiased bg-cream text-warm-900 dark:bg-warm-800 dark:text-warm-200 min-h-screen flex flex-col`}>
         <Header />
-        <main className="max-w-5xl mx-auto px-6 py-10">
+        <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
           {children}
         </main>
         <footer className="border-t border-cream-border dark:border-warm-700 px-6 py-6 mt-20 text-center text-xs text-warm-500">

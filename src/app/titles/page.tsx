@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
+import { LightboxImage } from '@/components/ui/LightboxImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,12 +97,12 @@ export default async function TitlesPage({
               {/* Poster thumbnail */}
               <div className="aspect-[2/3] relative rounded overflow-hidden bg-warm-100 dark:bg-warm-700 shrink-0">
                 {title.imageUrl && (
-                  <Image
+                  <LightboxImage
                     src={title.imageUrl}
                     alt={title.name}
-                    fill
-                    className="object-cover"
+                    containerClassName="absolute inset-0"
                     sizes="44px"
+                    scale={6}
                   />
                 )}
               </div>

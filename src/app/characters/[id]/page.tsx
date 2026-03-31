@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
+import { LightboxImage } from '@/components/ui/LightboxImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,12 +79,12 @@ export default async function CharacterPage({ params }: { params: { id: string }
             <div className="flex items-center gap-3">
               {castings[0].person.imageUrl && (
                 <div className="w-8 h-8 rounded-full overflow-hidden relative shrink-0">
-                  <Image
+                  <LightboxImage
                     src={castings[0].person.imageUrl}
                     alt={personName}
-                    fill
-                    className="object-cover"
+                    containerClassName="absolute inset-0"
                     sizes="32px"
+                    scale={6}
                   />
                 </div>
               )}
@@ -101,12 +102,12 @@ export default async function CharacterPage({ params }: { params: { id: string }
                 <div key={c.id} className="flex items-start gap-3">
                   {c.imageUrl && (
                     <div className="w-12 shrink-0 aspect-[3/4] relative rounded overflow-hidden">
-                      <Image
+                      <LightboxImage
                         src={c.imageUrl}
                         alt={`${personName} as ${character.name} in ${c.title.name}`}
-                        fill
-                        className="object-cover"
+                        containerClassName="absolute inset-0"
                         sizes="48px"
+                        scale={6}
                       />
                     </div>
                   )}
@@ -127,9 +128,9 @@ export default async function CharacterPage({ params }: { params: { id: string }
                           {c.episode.episodeTitle ? ` · "${c.episode.episodeTitle}"` : ''}
                         </p>
                       )}
-                      <span className="inline-block mt-1">
+                      <div className="mt-2">
                         <TitleBadge type={c.title.titleType} />
-                      </span>
+                      </div>
                     </div>
                   </div>
                 </div>
