@@ -1,19 +1,23 @@
 const BADGE_STYLES: Record<string, string> = {
-  film:          'bg-[#c94a1a] text-[#fdf6e3]',
-  tv_series:     'bg-[#7a5230] text-[#fdf6e3]',
-  tv_movie:      'bg-[#7a5230] text-[#fdf6e3]',
-  animated:      'bg-[#4a6a2a] text-[#fdf6e3]',
-  documentary:   'bg-[#2a4a6a] text-[#fdf6e3]',
-  other:         'bg-warm-100 text-warm-600',
+  film:           'bg-[#c94a1a] text-[#fdf6e3]',
+  tv_series:      'bg-[#7a5230] text-[#fdf6e3]',
+  tv_movie:       'bg-[#7a5230] text-[#fdf6e3]',
+  tv_miniseries:  'bg-[#7a5230] text-[#fdf6e3]',
+  animated:       'bg-[#4a6a2a] text-[#fdf6e3]',
+  documentary:    'bg-[#2a4a6a] text-[#fdf6e3]',
+  video:          'bg-warm-100 text-warm-600',
+  other:          'bg-warm-100 text-warm-600',
 }
 
 const BADGE_LABELS: Record<string, string> = {
-  film:          'Film',
-  tv_series:     'TV Series',
-  tv_movie:      'TV Movie',
-  animated:      'Animated',
-  documentary:   'Documentary',
-  other:         'Other',
+  film:           'Film',
+  tv_series:      'TV Series',
+  tv_movie:       'TV Movie',
+  tv_miniseries:  'Miniseries',
+  animated:       'Animated',
+  documentary:    'Documentary',
+  video:          'Video',
+  other:          'Other',
 }
 
 export function TitleBadge({ type }: { type: string }) {

@@ -22,12 +22,12 @@ export default async function AdminImagesPage({
   const tab = (searchParams.tab ?? 'people') as Tab
 
   const [people, characters, titles, castings] = await Promise.all([
-    prisma.person.findMany({ orderBy: { name: 'asc' } }),
-    prisma.character.findMany({ orderBy: { name: 'asc' } }),
-    prisma.title.findMany({ orderBy: { year: 'desc' } }),
+    prisma.person.findMany({ orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }] }),
+    prisma.character.findMany({ orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }] }),
+    prisma.title.findMany({ orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { year: 'desc' }] }),
     prisma.casting.findMany({
       include: { person: true, character: true, title: true },
-      orderBy: { id: 'asc' },
+      orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
     }),
   ])
 

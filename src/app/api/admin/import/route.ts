@@ -8,52 +8,66 @@ export const dynamic = 'force-dynamic'
 // ─── Row types matching the XLSX sheet columns ──────────────────────────────
 
 type PersonRow = {
-  'Person ID': number
-  'Name': string
-  'Person Type': string
-  'Birth Year': number | null
-  'Death Year': number | null
-  'Nationality': string | null
-  'Bio': string | null
+  'Person ID':           number
+  'Name':                string
+  'Person Type':         string
+  'Prefix':              string | null
+  'First Name':          string | null
+  'Middle Name':         string | null
+  'Last Name':           string | null
+  'Suffix':              string | null
+  'Birth Name':          string | null
+  'Birth Date':          number | null  // Excel serial date
+  'Death Date':          number | null  // Excel serial date
+  'Nationality':         string | null
+  'Birthplace':          string | null
+  'Industry':            string | null
+  'Specialty':           string | null
+  'Bio':                 string | null
+  'Notable Achievement': string | null
 }
 
 type CharacterRow = {
-  'Character ID': number
+  'Character ID':   number
   'Character Name': string
   'Character Type': string
-  'Description': string | null
+  'Description':    string | null
 }
 
 type TitleRow = {
-  'Title ID': number
-  'Title Name': string
-  'Year': number | null
-  'Type': string
-  'Genre': string | null
-  'Description': string | null
-  'Runtime (min)': number | null
+  'Title ID':           number
+  'Title Type':         string
+  'Title Sort':         string | null
+  'Title Name':         string
+  'Title Release Date': number | null  // Excel serial date
+  'Genre':              string | null
+  'Title Description':  string | null
+  'Runtime (min)':      number | null
+  'Title Score':        number | null
 }
 
 type EpisodeRow = {
-  'Episode ID': number
-  'Title ID': number
-  'Season': number | null
-  'Episode Number': number | null
-  'Episode Title': string | null
-  'Description': string | null
-  'Runtime (min)': number | null
+  'Episode ID':           number
+  'Title ID':             number
+  'Season':               number | null
+  'Episode Number':       number | null
+  'Episode Title':        string | null
+  'Episode Description':  string | null
+  'Episode Release Date': number | null  // Excel serial date
+  'Runtime (min)':        number | null
+  'Episode Score':        number | null
 }
 
 type CastingRow = {
-  'Casting ID': number
-  'Person ID': number
+  'Casting ID':   number
+  'Person ID':    number
   'Character ID': number
-  'Title ID': number
-  'Episode ID': number | null
-  'Notes': string | null
+  'Title ID':     number
+  'Episode ID':   number | null
+  'Notes':        string | null
 }
 
-// ─── Helper ─────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getSheet<T>(wb: xlsx.WorkBook, name: string): T[] {
   const ws = wb.Sheets[name]
@@ -61,8 +75,70 @@ function getSheet<T>(wb: xlsx.WorkBook, name: string): T[] {
   return xlsx.utils.sheet_to_json<T>(ws, { defval: null })
 }
 
-function toEnum<T extends string>(value: string, fallback: T): T {
-  return (value ?? fallback) as T
+// Convert Excel serial date to JS Date (accounts for Excel's 1900 leap year bug)
+function excelDate(serial: number | null): Date | null {
+  if (!serial || typeof serial !== 'number') return null
+  const d = new Date((serial - 25569) * 86400 * 1000)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function excelYear(serial: number | null): number | null {
+  const d = excelDate(serial)
+  return d ? d.getUTCFullYear() : null
+}
+
+// Strip trailing year from title names e.g. "Foo (2018-2019)" → "Foo"
+function stripYear(name: string | null): string | null {
+  if (!name) return null
+  return name.replace(/\s*\(\d{4}(?:-\d{4})?\)\s*$/, '').trim()
+}
+
+const TITLE_TYPE_MAP: Record<string, TitleType> = {
+  'Film':          'film',
+  'TV Series':     'tv_series',
+  'TV Movie':      'tv_movie',
+  'TV Miniseries': 'tv_miniseries',
+  'Animated':      'animated',
+  'Short':         'short',
+  'Documentary':   'documentary',
+  'Video':         'video',
+}
+
+function toTitleType(raw: string): TitleType {
+  return TITLE_TYPE_MAP[raw] ?? 'other'
+}
+
+const PERSON_TYPE_MAP: Record<string, PersonType> = {
+  'actor':              'actor',
+  'artist':             'artist',
+  'author':             'author',
+  'celebrity':          'celebrity',
+  'comedian':           'comedian',
+  'composer':           'composer',
+  'director':           'director',
+  'filmmaker':          'filmmaker',
+  'inventor':           'inventor',
+  'musician':           'musician',
+  'writer':             'writer',
+  // sports → athlete
+  'athlete':            'athlete',
+  'baseball player':    'athlete',
+  'basketball player':  'athlete',
+  'cricketer':          'athlete',
+  'football player':    'athlete',
+  'snooker player':     'athlete',
+  // catch-all
+  'character':          'other',
+  'conservationist':    'other',
+  'cosmologist':        'other',
+}
+
+function toPersonType(value: string | null): PersonType {
+  return PERSON_TYPE_MAP[value?.toLowerCase() ?? ''] ?? 'other'
+}
+
+function toEnum<T extends string>(value: string | null, fallback: T): T {
+  return ((value ?? fallback) as T)
 }
 
 // ─── Route ──────────────────────────────────────────────────────────────────
@@ -79,121 +155,124 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const wb = xlsx.read(buffer, { type: 'buffer' })
 
-    // ── Parse sheets ────────────────────────────────────────────────────────
-
     const personRows    = getSheet<PersonRow>(wb, 'Person')
     const characterRows = getSheet<CharacterRow>(wb, 'Character')
     const titleRows     = getSheet<TitleRow>(wb, 'Title')
     const episodeRows   = getSheet<EpisodeRow>(wb, 'Episode')
     const castingRows   = getSheet<CastingRow>(wb, 'Casting')
 
-    // ── Upsert in dependency order ───────────────────────────────────────────
+    // ── People ───────────────────────────────────────────────────────────────
 
     for (const row of personRows) {
-      await prisma.person.upsert({
-        where: { id: row['Person ID'] },
-        update: {
-          name:        row['Name'],
-          personType:  toEnum<PersonType>(row['Person Type'], 'actor'),
-          birthYear:   row['Birth Year'],
-          deathYear:   row['Death Year'],
-          nationality: row['Nationality'],
-          bio:         row['Bio'],
-        },
-        create: {
-          id:          row['Person ID'],
-          name:        row['Name'],
-          personType:  toEnum<PersonType>(row['Person Type'], 'actor'),
-          birthYear:   row['Birth Year'],
-          deathYear:   row['Death Year'],
-          nationality: row['Nationality'],
-          bio:         row['Bio'],
-        },
-      })
+      const id   = row['Person ID']
+      const data = {
+        name:               row['Name'],
+        personType:         toPersonType(row['Person Type']),
+        prefix:             row['Prefix'],
+        firstName:          row['First Name'],
+        middleName:         row['Middle Name'],
+        lastName:           row['Last Name'],
+        suffix:             row['Suffix'],
+        birthName:          row['Birth Name'],
+        birthDate:          excelDate(row['Birth Date']),
+        deathDate:          excelDate(row['Death Date']),
+        birthYear:          excelYear(row['Birth Date']),
+        deathYear:          excelYear(row['Death Date']),
+        nationality:        row['Nationality'],
+        birthplace:         row['Birthplace'],
+        industry:           row['Industry'],
+        specialty:          row['Specialty'],
+        bio:                row['Bio'],
+        notableAchievement: row['Notable Achievement'],
+      }
+      const exists = await prisma.person.findUnique({ where: { id }, select: { id: true } })
+      if (exists) {
+        await prisma.person.update({ where: { id }, data })
+      } else {
+        await prisma.person.create({ data: { id, ...data } })
+      }
     }
+
+    // ── Characters ───────────────────────────────────────────────────────────
 
     for (const row of characterRows) {
-      await prisma.character.upsert({
-        where: { id: row['Character ID'] },
-        update: {
-          name:          row['Character Name'],
-          characterType: toEnum<CharacterType>(row['Character Type'], 'other'),
-          description:   row['Description'],
-        },
-        create: {
-          id:            row['Character ID'],
-          name:          row['Character Name'],
-          characterType: toEnum<CharacterType>(row['Character Type'], 'other'),
-          description:   row['Description'],
-        },
-      })
+      const id   = row['Character ID']
+      const data = {
+        name:          row['Character Name'],
+        characterType: toEnum<CharacterType>(row['Character Type'], 'other'),
+        description:   row['Description'],
+      }
+      const exists = await prisma.character.findUnique({ where: { id }, select: { id: true } })
+      if (exists) {
+        await prisma.character.update({ where: { id }, data })
+      } else {
+        await prisma.character.create({ data: { id, ...data } })
+      }
     }
+
+    // ── Titles ───────────────────────────────────────────────────────────────
 
     for (const row of titleRows) {
-      await prisma.title.upsert({
-        where: { id: row['Title ID'] },
-        update: {
-          name:        row['Title Name'],
-          year:        row['Year'],
-          titleType:   toEnum<TitleType>(row['Type'], 'other'),
-          genre:       row['Genre'],
-          description: row['Description'],
-          runtime:     row['Runtime (min)'],
-        },
-        create: {
-          id:          row['Title ID'],
-          name:        row['Title Name'],
-          year:        row['Year'],
-          titleType:   toEnum<TitleType>(row['Type'], 'other'),
-          genre:       row['Genre'],
-          description: row['Description'],
-          runtime:     row['Runtime (min)'],
-        },
-      })
+      const id          = row['Title ID']
+      const releaseDate = excelDate(row['Title Release Date'])
+      const data = {
+        name:        stripYear(row['Title Name']) ?? row['Title Name'],
+        titleSort:   stripYear(row['Title Sort']),
+        year:        releaseDate ? releaseDate.getUTCFullYear() : null,
+        releaseDate,
+        titleType:   toTitleType(row['Title Type']),
+        genre:       row['Genre'],
+        description: row['Title Description'],
+        runtime:     row['Runtime (min)'],
+        titleScore:  row['Title Score'] ? Number(row['Title Score']) : null,
+      }
+      const exists = await prisma.title.findUnique({ where: { id }, select: { id: true } })
+      if (exists) {
+        await prisma.title.update({ where: { id }, data })
+      } else {
+        await prisma.title.create({ data: { id, ...data } })
+      }
     }
+
+    // ── Episodes ─────────────────────────────────────────────────────────────
 
     for (const row of episodeRows) {
-      await prisma.episode.upsert({
-        where: { id: row['Episode ID'] },
-        update: {
-          titleId:       row['Title ID'],
-          season:        row['Season'],
-          episodeNumber: row['Episode Number'],
-          episodeTitle:  row['Episode Title'],
-          description:   row['Description'],
-          runtime:       row['Runtime (min)'],
-        },
-        create: {
-          id:            row['Episode ID'],
-          titleId:       row['Title ID'],
-          season:        row['Season'],
-          episodeNumber: row['Episode Number'],
-          episodeTitle:  row['Episode Title'],
-          description:   row['Description'],
-          runtime:       row['Runtime (min)'],
-        },
-      })
+      const id   = row['Episode ID']
+      const data = {
+        titleId:       row['Title ID'],
+        season:        row['Season'],
+        episodeNumber: row['Episode Number'],
+        episodeTitle:  row['Episode Title'] != null ? String(row['Episode Title']) : null,
+        description:   row['Episode Description'],
+        releaseDate:   excelDate(row['Episode Release Date']),
+        runtime:       row['Runtime (min)'],
+        episodeScore:  row['Episode Score'] ? Number(row['Episode Score']) : null,
+      }
+      const exists = await prisma.episode.findUnique({ where: { id }, select: { id: true } })
+      if (exists) {
+        await prisma.episode.update({ where: { id }, data })
+      } else {
+        await prisma.episode.create({ data: { id, ...data } })
+      }
     }
 
+    // ── Castings ─────────────────────────────────────────────────────────────
+
     for (const row of castingRows) {
-      await prisma.casting.upsert({
-        where: { id: row['Casting ID'] },
-        update: {
-          personId:    row['Person ID'],
-          characterId: row['Character ID'],
-          titleId:     row['Title ID'],
-          episodeId:   row['Episode ID'],
-          notes:       row['Notes'],
-        },
-        create: {
-          id:          row['Casting ID'],
-          personId:    row['Person ID'],
-          characterId: row['Character ID'],
-          titleId:     row['Title ID'],
-          episodeId:   row['Episode ID'],
-          notes:       row['Notes'],
-        },
-      })
+      const id   = row['Casting ID']
+      const data = {
+        personId:    row['Person ID'],
+        characterId: row['Character ID'],
+        titleId:     row['Title ID'],
+        episodeId:   row['Episode ID'],
+        notes:       row['Notes'],
+      }
+      const exists = await prisma.casting.findUnique({ where: { id }, select: { id: true } })
+      if (exists) {
+        await prisma.casting.update({ where: { id }, data })
+      } else {
+        await prisma.casting.create({ data: { id, ...data } })
+      }
     }
 
     return NextResponse.json({

@@ -74,14 +74,14 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
     if (!matched.length) return
     setUploading(true)
 
-    const authRes = await fetch('/api/admin/imagekit-auth')
-    const { token, expire, signature, publicKey } = await authRes.json()
-
     for (let i = 0; i < matched.length; i++) {
       const item = matched[i]
       setMatched((prev) => prev.map((m, idx) => idx === i ? { ...m, status: 'uploading' } : m))
 
       try {
+        const authRes = await fetch('/api/admin/imagekit-auth')
+        const { token, expire, signature, publicKey } = await authRes.json()
+
         const form = new FormData()
         form.append('file', item.file)
         form.append('fileName', `${item.record.id}.jpg`)
@@ -155,7 +155,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
               <p className="text-xs text-warm-500 uppercase tracking-wide">
                 Matched — {matched.length} file{matched.length !== 1 ? 's' : ''}
               </p>
-              <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
+              <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-y-auto max-h-[420px]">
                 {matched.map((item, i) => (
                   <div
                     key={i}
@@ -186,7 +186,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
               <p className="text-xs text-warm-500 uppercase tracking-wide">
                 Unmatched — {unmatched.length} file{unmatched.length !== 1 ? 's' : ''} (will be skipped)
               </p>
-              <div className="border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden opacity-60">
+              <div className="border border-cream-subtle dark:border-warm-700 rounded-lg overflow-y-auto max-h-[420px] opacity-60">
                 {unmatched.map((item, i) => (
                   <div key={i} className="grid grid-cols-[1fr_1fr] gap-3 px-3 py-2 border-b border-cream-border dark:border-warm-700 last:border-b-0 text-xs">
                     <span className="text-warm-600 dark:text-warm-500 truncate">{item.file.name}</span>

@@ -49,18 +49,21 @@ async function uploadPeople() {
   let ok = 0, skip = 0
 
   for (const file of files) {
-    const name = path.basename(file, '.jpg')
-    const person = await prisma.person.findFirst({ where: { name } })
+    const base = path.basename(file, '.jpg')
+    const asId = parseInt(base)
+    const person = !isNaN(asId)
+      ? await prisma.person.findUnique({ where: { id: asId } })
+      : await prisma.person.findFirst({ where: { name: base } })
 
     if (!person) {
-      console.log(`  ⚠ No DB record for person: "${name}"`)
+      console.log(`  ⚠ No DB record for person: "${base}"`)
       skip++
       continue
     }
 
     const url = await uploadFile(path.join(dir, file), `${person.id}.jpg`, '/stevesdropping/people')
     await prisma.person.update({ where: { id: person.id }, data: { imageUrl: url } })
-    console.log(`  ✓ ${name} → ${url}`)
+    console.log(`  ✓ ${base} → ${url}`)
     ok++
   }
 

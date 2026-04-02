@@ -1,7 +1,13 @@
 'use client'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+
+// Request a small thumbnail from ImageKit instead of the full-res image
+function ikThumb(url: string | null): string | null {
+  if (!url) return null
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}tr=w-200,q-70`
+}
 
 type Entity = 'person' | 'character' | 'title' | 'casting'
 
@@ -75,12 +81,12 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
     <div className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-3 hover:border-steve transition-colors">
       <div className="aspect-[3/4] mb-2 rounded overflow-hidden bg-warm-100 dark:bg-warm-700 relative">
         {previewUrl ? (
-          <Image
-            src={previewUrl}
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={ikThumb(previewUrl) ?? previewUrl}
             alt={label}
-            fill
-            className="object-cover"
-            sizes="200px"
+            className="w-full h-full object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-warm-500 text-xs">
