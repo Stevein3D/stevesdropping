@@ -71,7 +71,7 @@ type CastingRow = {
 
 function getSheet<T>(wb: xlsx.WorkBook, name: string): T[] {
   const ws = wb.Sheets[name]
-  if (!ws) throw new Error(`Sheet "${name}" not found in workbook`)
+  if (!ws) return []
   return xlsx.utils.sheet_to_json<T>(ws, { defval: null })
 }
 

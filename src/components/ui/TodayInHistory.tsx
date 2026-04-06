@@ -72,7 +72,7 @@ export function TodayInHistory({ events, dateLabel }: { events: HistoryEvent[]; 
         <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
           Today in Steve History
         </h2>
-        <span className="text-xs text-warm-500">{dateLabel}</span>
+        <span className="text-sm font-medium text-warm-500">{dateLabel}</span>
       </div>
 
       {events.length === 0 ? (

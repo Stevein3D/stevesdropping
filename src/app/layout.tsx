@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { Header } from '@/components/ui/Header'
 import './globals.css'
+import BackToTopButton from '@/components/ui/BackToTopButton'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
           {children}
         </main>
+        <BackToTopButton />
         <footer className="border-t border-cream-border dark:border-warm-700 px-6 py-6 mt-20 text-center text-xs text-warm-500">
           Stevesdropping — All Steves, All the Time
         </footer>

@@ -70,7 +70,7 @@ export function Header() {
   }
 
   return (
-    <header className="border-b-2 border-steve px-6 py-4 bg-cream dark:bg-warm-800">
+    <header className="sticky top-0 z-50 border-b-2 border-steve px-6 py-4 bg-cream dark:bg-warm-800">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <Link href="/" className="font-serif text-2xl font-black text-steve tracking-tight">
           Stevesdropping
