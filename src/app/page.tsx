@@ -1,25 +1,126 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { TodayInHistory, type HistoryEvent } from '@/components/ui/TodayInHistory'
+import { ComingUp } from '@/components/ui/ComingUp'
 
 export const dynamic = 'force-dynamic'
 
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+type RawRow = { id: bigint; name: string; imageUrl: string | null; year: number; day: number }
+
+function toEvent(
+  row: RawRow,
+  type: HistoryEvent['type'],
+  hrefBase: string,
+  todayMonth: number,
+  currentYear: number,
+): HistoryEvent {
+  const id = Number(row.id)
+  return {
+    type,
+    year: Number(row.year),
+    yearsAgo: currentYear - Number(row.year),
+    name: row.name,
+    imageUrl: row.imageUrl,
+    href: `${hrefBase}/${id}`,
+    day: Number(row.day),
+    displayDate: `${MONTH_SHORT[todayMonth - 1]} ${Number(row.day)}`,
+  }
+}
+
 export default async function HomePage() {
-  const [peopleCount, characterCount, titleCount, castingCount] = await Promise.all([
+  const today = new Date()
+  const todayMonth  = today.getUTCMonth() + 1
+  const todayDay    = today.getUTCDate()
+  const currentYear = today.getUTCFullYear()
+
+  const dateLabel  = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
+  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' })
+
+  const [
+    peopleCount, characterCount, titleCount, castingCount,
+    bornToday, diedToday, releasedToday,
+    bornComing, diedComing, releasedComing,
+  ] = await Promise.all([
     prisma.person.count(),
     prisma.character.count(),
     prisma.title.count(),
     prisma.casting.count(),
+    // Today's events
+    prisma.$queryRaw<RawRow[]>`
+      SELECT id, name, "imageUrl",
+             EXTRACT(YEAR FROM "birthDate")::int AS year,
+             EXTRACT(DAY  FROM "birthDate")::int AS day
+      FROM persons
+      WHERE "birthDate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
+        AND EXTRACT(DAY   FROM "birthDate") = ${todayDay}`,
+    prisma.$queryRaw<RawRow[]>`
+      SELECT id, name, "imageUrl",
+             EXTRACT(YEAR FROM "deathDate")::int AS year,
+             EXTRACT(DAY  FROM "deathDate")::int AS day
+      FROM persons
+      WHERE "deathDate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
+        AND EXTRACT(DAY   FROM "deathDate") = ${todayDay}`,
+    prisma.$queryRaw<RawRow[]>`
+      SELECT id, name, "imageUrl",
+             EXTRACT(YEAR FROM "releaseDate")::int AS year,
+             EXTRACT(DAY  FROM "releaseDate")::int AS day
+      FROM titles
+      WHERE "releaseDate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
+        AND EXTRACT(DAY   FROM "releaseDate") = ${todayDay}`,
+    // Coming up (rest of month)
+    prisma.$queryRaw<RawRow[]>`
+      SELECT id, name, "imageUrl",
+             EXTRACT(YEAR FROM "birthDate")::int AS year,
+             EXTRACT(DAY  FROM "birthDate")::int AS day
+      FROM persons
+      WHERE "birthDate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
+        AND EXTRACT(DAY   FROM "birthDate") > ${todayDay}`,
+    prisma.$queryRaw<RawRow[]>`
+      SELECT id, name, "imageUrl",
+             EXTRACT(YEAR FROM "deathDate")::int AS year,
+             EXTRACT(DAY  FROM "deathDate")::int AS day
+      FROM persons
+      WHERE "deathDate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
+        AND EXTRACT(DAY   FROM "deathDate") > ${todayDay}`,
+    prisma.$queryRaw<RawRow[]>`
+      SELECT id, name, "imageUrl",
+             EXTRACT(YEAR FROM "releaseDate")::int AS year,
+             EXTRACT(DAY  FROM "releaseDate")::int AS day
+      FROM titles
+      WHERE "releaseDate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
+        AND EXTRACT(DAY   FROM "releaseDate") > ${todayDay}`,
   ])
 
+  const todayEvents: HistoryEvent[] = [
+    ...bornToday.map((r)     => toEvent(r, 'born',     '/people', todayMonth, currentYear)),
+    ...diedToday.map((r)     => toEvent(r, 'died',     '/people', todayMonth, currentYear)),
+    ...releasedToday.map((r) => toEvent(r, 'released', '/titles', todayMonth, currentYear)),
+  ]
+
+  const comingUpEvents: HistoryEvent[] = [
+    ...bornComing.map((r)     => toEvent(r, 'born',     '/people', todayMonth, currentYear)),
+    ...diedComing.map((r)     => toEvent(r, 'died',     '/people', todayMonth, currentYear)),
+    ...releasedComing.map((r) => toEvent(r, 'released', '/titles', todayMonth, currentYear)),
+  ].sort((a, b) => a.day - b.day)
+
   const stats = [
-    { label: 'People', value: peopleCount, href: '/people' },
+    { label: 'People',   value: peopleCount,    href: '/people' },
     { label: 'Characters', value: characterCount, href: '/characters' },
-    { label: 'Titles', value: titleCount, href: '/titles' },
-    { label: 'Castings', value: castingCount, href: '/people' },
+    { label: 'Titles',   value: titleCount,     href: '/titles' },
+    { label: 'Castings', value: castingCount,   href: '/people' },
   ]
 
   return (
     <div>
+      {/* Hero */}
       <section className="py-8 border-b border-cream-border dark:border-warm-700 mb-8">
         <p className="text-xs text-steve tracking-widest uppercase mb-2">The Steve Database</p>
         <h1 className="font-serif text-5xl font-black leading-tight tracking-tight text-warm-900 dark:text-warm-200">
@@ -40,6 +141,13 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Today in Steve History */}
+      <TodayInHistory events={todayEvents} dateLabel={dateLabel} />
+
+      {/* Coming Up */}
+      <ComingUp events={comingUpEvents} monthLabel={monthLabel} />
+
+      {/* Browse cards */}
       <section className="grid md:grid-cols-3 gap-4">
         {[
           { href: '/people',     heading: 'Browse People',     body: 'Actors and notable figures named Steve or Steven' },
