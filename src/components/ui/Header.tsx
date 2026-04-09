@@ -86,7 +86,7 @@ export function Header() {
           <button
             onClick={toggleDark}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="border border-warm-500 text-warm-600 dark:text-warm-500 p-1.5 rounded-full hover:border-steve hover:text-steve transition-colors"
+            className="border border-warm-500 text-warm-600 dark:text-warm-500 p-1.5 rounded-full hover:border-steve dark:hover:border-warm-200 hover:text-steve transition-colors"
           >
             {dark ? <SunIcon /> : <MoonIcon />}
           </button>
@@ -97,7 +97,7 @@ export function Header() {
           <button
             onClick={toggleDark}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="border border-warm-500 p-1.5 rounded-full hover:border-steve hover:text-steve transition-colors"
+            className="border border-warm-500 p-1.5 rounded-full hover:border-steve dark:hover:border-warm-200 hover:text-steve transition-colors"
           >
             {dark ? <SunIcon /> : <MoonIcon />}
           </button>

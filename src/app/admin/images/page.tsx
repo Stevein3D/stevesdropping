@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-import { ImageUploadButton } from '@/components/admin/ImageUploadButton'
 import { BatchUploadSection } from '@/components/admin/BatchUploadSection'
+import { AdminImageSearch } from '@/components/admin/AdminImageSearch'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +48,11 @@ export default async function AdminImagesPage({
     id:       t.id,
     name:     `${t.name}${t.year ? ` (${t.year})` : ''}`,
     imageUrl: t.imageUrl,
+    featured: t.featured,
   }))
+
+  const peopleRecords    = people.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, featured: p.featured }))
+  const characterRecords = characters.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, featured: c.featured }))
 
   return (
     <div className="space-y-6">
@@ -84,96 +88,40 @@ export default async function AdminImagesPage({
       {/* People */}
       {tab === 'people' && (
         <>
-          <BatchUploadSection
-            records={people}
-            entity="person"
-            folder="/stevesdropping/people"
-          />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {people.map((person) => (
-              <ImageUploadButton
-                key={person.id}
-                entity="person"
-                id={person.id}
-                folder="/stevesdropping/people"
-                fileName={`${person.id}.jpg`}
-                currentUrl={person.imageUrl}
-                label={person.name}
-              />
-            ))}
-          </div>
+          <BatchUploadSection records={peopleRecords} entity="person" folder="/stevesdropping/people" />
+          <AdminImageSearch records={peopleRecords} entity="person" folder="/stevesdropping/people" />
         </>
       )}
 
       {/* Characters */}
       {tab === 'characters' && (
         <>
-          <BatchUploadSection
-            records={characters}
-            entity="character"
-            folder="/stevesdropping/characters"
-          />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {characters.map((character) => (
-              <ImageUploadButton
-                key={character.id}
-                entity="character"
-                id={character.id}
-                folder="/stevesdropping/characters"
-                fileName={`${character.id}.jpg`}
-                currentUrl={character.imageUrl}
-                label={character.name}
-              />
-            ))}
-          </div>
+          <BatchUploadSection records={characterRecords} entity="character" folder="/stevesdropping/characters" />
+          <AdminImageSearch records={characterRecords} entity="character" folder="/stevesdropping/characters" />
         </>
       )}
 
       {/* Titles */}
       {tab === 'titles' && (
         <>
-          <BatchUploadSection
+          <BatchUploadSection records={titleRecords} entity="title" folder="/stevesdropping/titles" />
+          <AdminImageSearch
             records={titleRecords}
             entity="title"
             folder="/stevesdropping/titles"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {titles.map((title) => (
-              <ImageUploadButton
-                key={title.id}
-                entity="title"
-                id={title.id}
-                folder="/stevesdropping/titles"
-                fileName={`${title.id}.jpg`}
-                currentUrl={title.imageUrl}
-                label={`${title.name}${title.year ? ` (${title.year})` : ''}`}
-              />
-            ))}
-          </div>
         </>
       )}
 
       {/* Castings */}
       {tab === 'castings' && (
         <>
-          <BatchUploadSection
+          <BatchUploadSection records={castingRecords} entity="casting" folder="/stevesdropping/casting" />
+          <AdminImageSearch
             records={castingRecords}
             entity="casting"
             folder="/stevesdropping/casting"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {castings.map((casting) => (
-              <ImageUploadButton
-                key={casting.id}
-                entity="casting"
-                id={casting.id}
-                folder="/stevesdropping/casting"
-                fileName={`${casting.id}.jpg`}
-                currentUrl={casting.imageUrl}
-                label={`${casting.person.name} as ${casting.character.name}`}
-              />
-            ))}
-          </div>
         </>
       )}
     </div>

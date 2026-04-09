@@ -60,7 +60,7 @@ export default function ImportPage() {
         {/* Drop zone */}
         <div
           onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-cream-border dark:border-warm-700 rounded-lg p-8 text-center cursor-pointer hover:border-steve transition-colors"
+          className="border-2 border-dashed border-cream-border dark:border-warm-700 rounded-lg p-8 text-center cursor-pointer hover:border-steve dark:hover:border-warm-200 transition-colors"
         >
           <input
             ref={inputRef}

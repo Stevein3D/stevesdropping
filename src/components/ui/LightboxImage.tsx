@@ -10,9 +10,11 @@ interface Props {
   containerClassName: string
   imageClassName?: string
   scale?: number
+  /** If provided, used for the visible thumbnail; src is used only for the hover preview. */
+  thumbnailSrc?: string
 }
 
-export function LightboxImage({ src, alt, sizes, containerClassName, imageClassName = 'object-cover', scale = 3 }: Props) {
+export function LightboxImage({ src, alt, sizes, containerClassName, imageClassName = 'object-cover', scale = 3, thumbnailSrc }: Props) {
   const [preview, setPreview] = useState<CSSProperties | null>(null)
   const [mounted, setMounted] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -55,7 +57,12 @@ export function LightboxImage({ src, alt, sizes, containerClassName, imageClassN
         onMouseEnter={onMouseEnter}
         onMouseLeave={hide}
       >
-        <Image src={src} alt={alt} fill className={imageClassName} sizes={sizes} />
+        {thumbnailSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumbnailSrc} alt={alt} className={`w-full h-full ${imageClassName}`} loading="lazy" />
+        ) : (
+          <Image src={src} alt={alt} fill className={imageClassName} sizes={sizes} />
+        )}
       </div>
 
       {mounted && preview && createPortal(

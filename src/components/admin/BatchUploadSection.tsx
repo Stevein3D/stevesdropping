@@ -140,7 +140,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
       {matched.length === 0 && unmatched.length === 0 && (
         <div
           onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-cream-border dark:border-warm-700 rounded-lg p-6 text-center cursor-pointer hover:border-steve transition-colors"
+          className="border-2 border-dashed border-cream-border dark:border-warm-700 rounded-lg p-6 text-center cursor-pointer hover:border-steve dark:hover:border-warm-200 transition-colors"
         >
           <input ref={inputRef} type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
           <p className="text-sm text-warm-600 dark:text-warm-500">Click to select multiple image files</p>

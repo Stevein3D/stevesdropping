@@ -22,7 +22,7 @@ export function ComingUp({ events, monthLabel }: { events: HistoryEvent[]; month
           <Link
             key={`${event.href}-${event.type}`}
             href={event.href}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-2.5 hover:border-steve transition-colors flex items-center gap-2"
+            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-2.5 hover:border-steve dark:hover:border-warm-200 transition-colors flex items-center gap-2"
           >
             <div className="w-8 h-10 rounded overflow-hidden flex-shrink-0 bg-warm-100 dark:bg-warm-700">
               {event.imageUrl && (

@@ -23,7 +23,7 @@ export default function BackToTopButton() {
         bg-cream dark:bg-warm-800
         text-warm-600 dark:text-warm-500
         shadow-md
-        hover:border-steve hover:text-steve
+        hover:border-steve dark:hover:border-warm-200 hover:text-steve
         transition-all duration-200
         ${visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
       `}

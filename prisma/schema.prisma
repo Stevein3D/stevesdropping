@@ -72,6 +72,7 @@ model Person {
   bio                 String?
   notableAchievement  String?
   imageUrl            String?
+  featured            Boolean    @default(false)
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
@@ -86,6 +87,7 @@ model Character {
   characterType CharacterType @default(supporting)
   description   String?
   imageUrl      String?
+  featured      Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -106,6 +108,7 @@ model Title {
   runtime     Int?      // in minutes
   titleScore  Float?
   imageUrl    String?   // poster/thumbnail
+  featured    Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
