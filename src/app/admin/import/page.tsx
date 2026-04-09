@@ -9,8 +9,10 @@ type Summary = {
   castings: number
 }
 
+type RowError = { entity: string; id: number | string; error: string }
+
 type Result =
-  | { ok: true; summary: Summary }
+  | { ok: true; summary: Summary; errors: RowError[] }
   | { ok: false; error: string }
 
 export default function ImportPage() {
@@ -93,7 +95,7 @@ export default function ImportPage() {
       {result && (
         <div className={`rounded-lg border p-5 ${result.ok ? 'border-cream-border dark:border-warm-700 bg-cream-card dark:bg-warm-50/5' : 'border-steve bg-steve/5'}`}>
           {result.ok ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <p className="text-sm font-medium text-warm-900 dark:text-warm-200">Import complete</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {Object.entries(result.summary).map(([key, count]) => (
@@ -103,6 +105,22 @@ export default function ImportPage() {
                   </div>
                 ))}
               </div>
+              {result.errors.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-steve uppercase tracking-wide">
+                    {result.errors.length} row{result.errors.length !== 1 ? 's' : ''} failed
+                  </p>
+                  <div className="border border-steve/30 rounded-lg overflow-y-auto max-h-64">
+                    {result.errors.map((e, i) => (
+                      <div key={i} className="px-3 py-2 border-b border-cream-border dark:border-warm-700 last:border-b-0 text-xs">
+                        <span className="font-medium text-warm-900 dark:text-warm-200 capitalize">{e.entity} #{e.id}</span>
+                        <span className="text-warm-500 mx-1.5">—</span>
+                        <span className="text-steve">{e.error}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-steve">{result.error}</p>

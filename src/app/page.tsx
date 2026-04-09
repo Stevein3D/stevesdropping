@@ -30,13 +30,14 @@ function toEvent(
 }
 
 export default async function HomePage() {
+  const TZ = 'America/New_York'
   const today = new Date()
-  const todayMonth  = today.getUTCMonth() + 1
-  const todayDay    = today.getUTCDate()
-  const currentYear = today.getUTCFullYear()
+  const todayMonth  = parseInt(today.toLocaleDateString('en-US', { month:  'numeric', timeZone: TZ }), 10)
+  const todayDay    = parseInt(today.toLocaleDateString('en-US', { day:    'numeric', timeZone: TZ }), 10)
+  const currentYear = parseInt(today.toLocaleDateString('en-US', { year:   'numeric', timeZone: TZ }), 10)
 
-  const dateLabel  = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
-  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' })
+  const dateLabel  = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: TZ })
+  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', timeZone: TZ })
 
   const [
     peopleCount, characterCount, titleCount, castingCount,

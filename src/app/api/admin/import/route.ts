@@ -161,117 +161,142 @@ export async function POST(request: NextRequest) {
     const episodeRows   = getSheet<EpisodeRow>(wb, 'Episode')
     const castingRows   = getSheet<CastingRow>(wb, 'Casting')
 
+    type RowError = { entity: string; id: number | string; error: string }
+    const errors: RowError[] = []
+
     // ── People ───────────────────────────────────────────────────────────────
 
     for (const row of personRows) {
-      const id   = row['Person ID']
-      const data = {
-        name:               row['Name'],
-        personType:         toPersonType(row['Person Type']),
-        prefix:             row['Prefix'],
-        firstName:          row['First Name'],
-        middleName:         row['Middle Name'],
-        lastName:           row['Last Name'],
-        suffix:             row['Suffix'],
-        birthName:          row['Birth Name'],
-        birthDate:          excelDate(row['Birth Date']),
-        deathDate:          excelDate(row['Death Date']),
-        birthYear:          excelYear(row['Birth Date']),
-        deathYear:          excelYear(row['Death Date']),
-        nationality:        row['Nationality'],
-        birthplace:         row['Birthplace'],
-        industry:           row['Industry'],
-        specialty:          row['Specialty'],
-        bio:                row['Bio'],
-        notableAchievement: row['Notable Achievement'],
-      }
-      const exists = await prisma.person.findUnique({ where: { id }, select: { id: true } })
-      if (exists) {
-        await prisma.person.update({ where: { id }, data })
-      } else {
-        await prisma.person.create({ data: { id, ...data } })
+      const id = row['Person ID']
+      try {
+        const data = {
+          name:               row['Name'],
+          personType:         toPersonType(row['Person Type']),
+          prefix:             row['Prefix'],
+          firstName:          row['First Name'],
+          middleName:         row['Middle Name'],
+          lastName:           row['Last Name'],
+          suffix:             row['Suffix'],
+          birthName:          row['Birth Name'],
+          birthDate:          excelDate(row['Birth Date']),
+          deathDate:          excelDate(row['Death Date']),
+          birthYear:          excelYear(row['Birth Date']),
+          deathYear:          excelYear(row['Death Date']),
+          nationality:        row['Nationality'],
+          birthplace:         row['Birthplace'],
+          industry:           row['Industry'],
+          specialty:          row['Specialty'],
+          bio:                row['Bio'],
+          notableAchievement: row['Notable Achievement'],
+        }
+        const exists = await prisma.person.findUnique({ where: { id }, select: { id: true } })
+        if (exists) {
+          await prisma.person.update({ where: { id }, data })
+        } else {
+          await prisma.person.create({ data: { id, ...data } })
+        }
+      } catch (err) {
+        errors.push({ entity: 'person', id, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
     // ── Characters ───────────────────────────────────────────────────────────
 
     for (const row of characterRows) {
-      const id   = row['Character ID']
-      const data = {
-        name:          row['Character Name'],
-        characterType: toEnum<CharacterType>(row['Character Type'], 'other'),
-        description:   row['Description'],
-      }
-      const exists = await prisma.character.findUnique({ where: { id }, select: { id: true } })
-      if (exists) {
-        await prisma.character.update({ where: { id }, data })
-      } else {
-        await prisma.character.create({ data: { id, ...data } })
+      const id = row['Character ID']
+      try {
+        const data = {
+          name:          row['Character Name'],
+          characterType: toEnum<CharacterType>(row['Character Type'], 'other'),
+          description:   row['Description'],
+        }
+        const exists = await prisma.character.findUnique({ where: { id }, select: { id: true } })
+        if (exists) {
+          await prisma.character.update({ where: { id }, data })
+        } else {
+          await prisma.character.create({ data: { id, ...data } })
+        }
+      } catch (err) {
+        errors.push({ entity: 'character', id, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
     // ── Titles ───────────────────────────────────────────────────────────────
 
     for (const row of titleRows) {
-      const id          = row['Title ID']
-      const releaseDate = excelDate(row['Title Release Date'])
-      const data = {
-        name:        stripYear(row['Title Name']) ?? row['Title Name'],
-        titleSort:   stripYear(row['Title Sort']),
-        year:        releaseDate ? releaseDate.getUTCFullYear() : null,
-        releaseDate,
-        titleType:   toTitleType(row['Title Type']),
-        genre:       row['Genre'],
-        description: row['Title Description'],
-        runtime:     row['Runtime (min)'],
-        titleScore:  row['Title Score'] ? Number(row['Title Score']) : null,
-      }
-      const exists = await prisma.title.findUnique({ where: { id }, select: { id: true } })
-      if (exists) {
-        await prisma.title.update({ where: { id }, data })
-      } else {
-        await prisma.title.create({ data: { id, ...data } })
+      const id = row['Title ID']
+      try {
+        const releaseDate = excelDate(row['Title Release Date'])
+        const rawRuntime  = row['Runtime (min)']
+        const data = {
+          name:        stripYear(row['Title Name']) ?? row['Title Name'],
+          titleSort:   stripYear(row['Title Sort']),
+          year:        releaseDate ? releaseDate.getUTCFullYear() : null,
+          releaseDate,
+          titleType:   toTitleType(row['Title Type']),
+          genre:       row['Genre'],
+          description: row['Title Description'],
+          runtime:     (rawRuntime != null && !isNaN(Number(rawRuntime))) ? Number(rawRuntime) : null,
+          titleScore:  row['Title Score'] ? Number(row['Title Score']) : null,
+        }
+        const exists = await prisma.title.findUnique({ where: { id }, select: { id: true } })
+        if (exists) {
+          await prisma.title.update({ where: { id }, data })
+        } else {
+          await prisma.title.create({ data: { id, ...data } })
+        }
+      } catch (err) {
+        errors.push({ entity: 'title', id, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
     // ── Episodes ─────────────────────────────────────────────────────────────
 
     for (const row of episodeRows) {
-      const id   = row['Episode ID']
-      const data = {
-        titleId:       row['Title ID'],
-        season:        row['Season'],
-        episodeNumber: row['Episode Number'],
-        episodeTitle:  row['Episode Title'] != null ? String(row['Episode Title']) : null,
-        description:   row['Episode Description'],
-        releaseDate:   excelDate(row['Episode Release Date']),
-        runtime:       row['Runtime (min)'],
-        episodeScore:  row['Episode Score'] ? Number(row['Episode Score']) : null,
-      }
-      const exists = await prisma.episode.findUnique({ where: { id }, select: { id: true } })
-      if (exists) {
-        await prisma.episode.update({ where: { id }, data })
-      } else {
-        await prisma.episode.create({ data: { id, ...data } })
+      const id = row['Episode ID']
+      try {
+        const rawRuntime = row['Runtime (min)']
+        const data = {
+          titleId:       row['Title ID'],
+          season:        row['Season'],
+          episodeNumber: row['Episode Number'],
+          episodeTitle:  row['Episode Title'] != null ? String(row['Episode Title']) : null,
+          description:   row['Episode Description'],
+          releaseDate:   excelDate(row['Episode Release Date']),
+          runtime:       (rawRuntime != null && !isNaN(Number(rawRuntime))) ? Number(rawRuntime) : null,
+          episodeScore:  row['Episode Score'] ? Number(row['Episode Score']) : null,
+        }
+        const exists = await prisma.episode.findUnique({ where: { id }, select: { id: true } })
+        if (exists) {
+          await prisma.episode.update({ where: { id }, data })
+        } else {
+          await prisma.episode.create({ data: { id, ...data } })
+        }
+      } catch (err) {
+        errors.push({ entity: 'episode', id, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
     // ── Castings ─────────────────────────────────────────────────────────────
 
     for (const row of castingRows) {
-      const id   = row['Casting ID']
-      const data = {
-        personId:    row['Person ID'],
-        characterId: row['Character ID'],
-        titleId:     row['Title ID'],
-        episodeId:   row['Episode ID'],
-        notes:       row['Notes'],
-      }
-      const exists = await prisma.casting.findUnique({ where: { id }, select: { id: true } })
-      if (exists) {
-        await prisma.casting.update({ where: { id }, data })
-      } else {
-        await prisma.casting.create({ data: { id, ...data } })
+      const id = row['Casting ID']
+      try {
+        const data = {
+          personId:    row['Person ID'],
+          characterId: row['Character ID'],
+          titleId:     row['Title ID'],
+          episodeId:   row['Episode ID'],
+          notes:       row['Notes'],
+        }
+        const exists = await prisma.casting.findUnique({ where: { id }, select: { id: true } })
+        if (exists) {
+          await prisma.casting.update({ where: { id }, data })
+        } else {
+          await prisma.casting.create({ data: { id, ...data } })
+        }
+      } catch (err) {
+        errors.push({ entity: 'casting', id, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
@@ -284,6 +309,7 @@ export async function POST(request: NextRequest) {
         episodes:   episodeRows.length,
         castings:   castingRows.length,
       },
+      errors,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Import failed'
