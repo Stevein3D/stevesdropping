@@ -21,13 +21,22 @@ export default async function AdminImagesPage({
 }) {
   const tab = (searchParams.tab ?? 'people') as Tab
 
+  function sortRecords<T extends { imageUrl: string | null; name: string }>(arr: T[]): T[] {
+    return [...arr].sort((a, b) => {
+      const aMissing = !a.imageUrl ? 0 : 1
+      const bMissing = !b.imageUrl ? 0 : 1
+      if (aMissing !== bMissing) return aMissing - bMissing
+      return a.name.localeCompare(b.name)
+    })
+  }
+
   const [people, characters, titles, castings] = await Promise.all([
-    prisma.person.findMany({ orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }] }),
-    prisma.character.findMany({ orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }] }),
-    prisma.title.findMany({ orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { year: 'desc' }] }),
+    prisma.person.findMany({ orderBy: { name: 'asc' } }),
+    prisma.character.findMany({ orderBy: { name: 'asc' } }),
+    prisma.title.findMany({ orderBy: { name: 'asc' } }),
     prisma.casting.findMany({
       include: { person: true, character: true, title: true },
-      orderBy: [{ imageUrl: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
+      orderBy: { id: 'asc' },
     }),
   ])
 
@@ -38,21 +47,21 @@ export default async function AdminImagesPage({
     castings:   castings.filter((r) => !r.imageUrl).length,
   }
 
-  const castingRecords = castings.map((c) => ({
+  const castingRecords = sortRecords(castings.map((c) => ({
     id:       c.id,
     name:     `${c.person.name} as ${c.character.name}`,
     imageUrl: c.imageUrl,
-  }))
+  })))
 
-  const titleRecords = titles.map((t) => ({
+  const titleRecords = sortRecords(titles.map((t) => ({
     id:       t.id,
     name:     `${t.name}${t.year ? ` (${t.year})` : ''}`,
     imageUrl: t.imageUrl,
     featured: t.featured,
-  }))
+  })))
 
-  const peopleRecords    = people.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, featured: p.featured }))
-  const characterRecords = characters.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, featured: c.featured }))
+  const peopleRecords    = sortRecords(people.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, featured: p.featured })))
+  const characterRecords = sortRecords(characters.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, featured: c.featured })))
 
   return (
     <div className="space-y-6">

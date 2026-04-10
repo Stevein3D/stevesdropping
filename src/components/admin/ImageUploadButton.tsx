@@ -130,7 +130,12 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
 
   return (
     <div className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-3 hover:border-steve dark:hover:border-warm-200 transition-colors">
-      <div className="aspect-[3/4] mb-2 rounded overflow-hidden bg-warm-100 dark:bg-warm-700 relative">
+      <div className="aspect-[3/4] mb-2 rounded overflow-hidden bg-warm-100 dark:bg-warm-700 relative group/img">
+        {/* ID tag — visible on hover */}
+        <span className="absolute bottom-1.5 left-1.5 z-10 text-[12px] font-mono bg-black/60 text-white px-1.5 py-0.5 rounded opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none">
+          #{id}
+        </span>
+
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

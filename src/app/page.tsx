@@ -171,7 +171,7 @@ export default async function HomePage() {
       <section className="py-8 border-b border-cream-border dark:border-warm-700 mb-8">
         <div className="flex gap-8 items-center">
           {/* Left — text + stats */}
-          <div className="flex-shrink-0 w-[40%] min-w-0">
+          <div className="flex-shrink-0 w-[100%] md:w-[40%] min-w-0">
             <p className="text-xs text-steve tracking-widest uppercase mb-2">The Steve Database</p>
             <h1 className="font-serif text-5xl font-black leading-tight tracking-tight text-warm-900 dark:text-warm-200">
               All Steves,<br />
