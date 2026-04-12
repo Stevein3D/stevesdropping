@@ -33,6 +33,7 @@ export default async function PeoplePage({
         birthYear: true,
         deathYear: true,
         imageUrl: true,
+        updatedAt: true,
         _count: { select: { castings: true } },
       },
       orderBy: { name: 'asc' },
@@ -99,7 +100,7 @@ export default async function PeoplePage({
               {person.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`${person.imageUrl}?tr=w-640,q-80`}
+                  src={`${person.imageUrl.split('?')[0]}?tr=w-640,q-80&ik-t=${Math.floor(person.updatedAt.getTime() / 1000)}`}
                   alt={person.name}
                   className="w-full h-full object-cover"
                   loading="lazy"

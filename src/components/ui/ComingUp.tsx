@@ -28,7 +28,7 @@ export function ComingUp({ events, monthLabel }: { events: HistoryEvent[]; month
               {event.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`${event.imageUrl}?tr=w-64,q-70`}
+                  src={`${event.imageUrl!.split('?')[0]}?tr=w-64,q-70${event.imageVersion ? `&ik-t=${event.imageVersion}` : ''}`}
                   alt={event.name}
                   className="w-full h-full object-cover"
                 />

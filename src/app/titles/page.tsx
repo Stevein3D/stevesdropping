@@ -43,6 +43,7 @@ export default async function TitlesPage({
         name: true,
         year: true,
         imageUrl: true,
+        updatedAt: true,
         titleType: true,
         castings: {
           select: {
@@ -119,8 +120,8 @@ export default async function TitlesPage({
               <div className="aspect-[2/3] relative rounded overflow-hidden bg-warm-100 dark:bg-warm-700 shrink-0">
                 {title.imageUrl && (
                   <LightboxImage
-                    src={title.imageUrl}
-                    thumbnailSrc={`${title.imageUrl}?tr=w-88,q-80`}
+                    src={`${title.imageUrl.split('?')[0]}?ik-t=${Math.floor(title.updatedAt.getTime() / 1000)}`}
+                    thumbnailSrc={`${title.imageUrl.split('?')[0]}?tr=w-88,q-80&ik-t=${Math.floor(title.updatedAt.getTime() / 1000)}`}
                     alt={title.name}
                     containerClassName="absolute inset-0"
                     sizes="44px"

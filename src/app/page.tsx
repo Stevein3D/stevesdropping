@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-type RawRow = { id: bigint; name: string; imageUrl: string | null; year: number; day: number }
+type RawRow = { id: bigint; name: string; imageUrl: string | null; year: number; day: number; updatedAt: Date }
 
 function toEvent(
   row: RawRow,
@@ -24,6 +24,7 @@ function toEvent(
     yearsAgo: currentYear - Number(row.year),
     name: row.name,
     imageUrl: row.imageUrl,
+    imageVersion: row.updatedAt ? Math.floor(new Date(row.updatedAt).getTime() / 1000) : null,
     href: `${hrefBase}/${id}`,
     day: Number(row.day),
     displayDate: `${MONTH_SHORT[todayMonth - 1]} ${Number(row.day)}`,
@@ -51,48 +52,48 @@ export default async function HomePage() {
     prisma.title.count(),
     prisma.casting.count(),
     // Carousel — featured first, padded with random non-featured to min 8
-    prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string }[]>`
+    prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string; updatedAt: Date }[]>`
       WITH featured AS (
-        SELECT id, name, "imageUrl", 0 AS priority FROM persons
+        SELECT id, name, "imageUrl", "updatedAt", 0 AS priority FROM persons
         WHERE "imageUrl" IS NOT NULL AND featured = true
       ), filler AS (
-        SELECT id, name, "imageUrl", 1 AS priority FROM persons
+        SELECT id, name, "imageUrl", "updatedAt", 1 AS priority FROM persons
         WHERE "imageUrl" IS NOT NULL AND featured = false
         ORDER BY random()
         LIMIT GREATEST(0, 8 - (SELECT COUNT(*) FROM featured))
       )
-      SELECT id, name, "imageUrl" FROM featured
+      SELECT id, name, "imageUrl", "updatedAt" FROM featured
       UNION ALL
-      SELECT id, name, "imageUrl" FROM filler`,
-    prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string }[]>`
+      SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
+    prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string; updatedAt: Date }[]>`
       WITH featured AS (
-        SELECT id, name, "imageUrl", 0 AS priority FROM characters
+        SELECT id, name, "imageUrl", "updatedAt", 0 AS priority FROM characters
         WHERE "imageUrl" IS NOT NULL AND featured = true
       ), filler AS (
-        SELECT id, name, "imageUrl", 1 AS priority FROM characters
+        SELECT id, name, "imageUrl", "updatedAt", 1 AS priority FROM characters
         WHERE "imageUrl" IS NOT NULL AND featured = false
         ORDER BY random()
         LIMIT GREATEST(0, 8 - (SELECT COUNT(*) FROM featured))
       )
-      SELECT id, name, "imageUrl" FROM featured
+      SELECT id, name, "imageUrl", "updatedAt" FROM featured
       UNION ALL
-      SELECT id, name, "imageUrl" FROM filler`,
-    prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string }[]>`
+      SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
+    prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string; updatedAt: Date }[]>`
       WITH featured AS (
-        SELECT id, name, "imageUrl", 0 AS priority FROM titles
+        SELECT id, name, "imageUrl", "updatedAt", 0 AS priority FROM titles
         WHERE "imageUrl" IS NOT NULL AND featured = true
       ), filler AS (
-        SELECT id, name, "imageUrl", 1 AS priority FROM titles
+        SELECT id, name, "imageUrl", "updatedAt", 1 AS priority FROM titles
         WHERE "imageUrl" IS NOT NULL AND featured = false
         ORDER BY random()
         LIMIT GREATEST(0, 8 - (SELECT COUNT(*) FROM featured))
       )
-      SELECT id, name, "imageUrl" FROM featured
+      SELECT id, name, "imageUrl", "updatedAt" FROM featured
       UNION ALL
-      SELECT id, name, "imageUrl" FROM filler`,
+      SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
     // Today's events
     prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl",
+      SELECT id, name, "imageUrl", "updatedAt",
              EXTRACT(YEAR FROM "birthDate")::int AS year,
              EXTRACT(DAY  FROM "birthDate")::int AS day
       FROM persons
@@ -100,7 +101,7 @@ export default async function HomePage() {
         AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "birthDate") = ${todayDay}`,
     prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl",
+      SELECT id, name, "imageUrl", "updatedAt",
              EXTRACT(YEAR FROM "deathDate")::int AS year,
              EXTRACT(DAY  FROM "deathDate")::int AS day
       FROM persons
@@ -108,7 +109,7 @@ export default async function HomePage() {
         AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "deathDate") = ${todayDay}`,
     prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl",
+      SELECT id, name, "imageUrl", "updatedAt",
              EXTRACT(YEAR FROM "releaseDate")::int AS year,
              EXTRACT(DAY  FROM "releaseDate")::int AS day
       FROM titles
@@ -117,7 +118,7 @@ export default async function HomePage() {
         AND EXTRACT(DAY   FROM "releaseDate") = ${todayDay}`,
     // Coming up (rest of month)
     prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl",
+      SELECT id, name, "imageUrl", "updatedAt",
              EXTRACT(YEAR FROM "birthDate")::int AS year,
              EXTRACT(DAY  FROM "birthDate")::int AS day
       FROM persons
@@ -125,7 +126,7 @@ export default async function HomePage() {
         AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "birthDate") > ${todayDay}`,
     prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl",
+      SELECT id, name, "imageUrl", "updatedAt",
              EXTRACT(YEAR FROM "deathDate")::int AS year,
              EXTRACT(DAY  FROM "deathDate")::int AS day
       FROM persons
@@ -133,7 +134,7 @@ export default async function HomePage() {
         AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "deathDate") > ${todayDay}`,
     prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl",
+      SELECT id, name, "imageUrl", "updatedAt",
              EXTRACT(YEAR FROM "releaseDate")::int AS year,
              EXTRACT(DAY  FROM "releaseDate")::int AS day
       FROM titles
@@ -161,9 +162,9 @@ export default async function HomePage() {
     { label: 'Castings',   value: castingCount,    href: '/people' },
   ]
 
-  const carouselPeopleItems     = carouselPeople.map((r)     => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/people/${Number(r.id)}` }))
-  const carouselCharacterItems  = carouselCharacters.map((r) => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/characters/${Number(r.id)}` }))
-  const carouselTitleItems      = carouselTitles.map((r)     => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/titles/${Number(r.id)}` }))
+  const carouselPeopleItems    = carouselPeople.map((r)     => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/people/${Number(r.id)}`,     imageVersion: Math.floor(new Date(r.updatedAt).getTime() / 1000) }))
+  const carouselCharacterItems = carouselCharacters.map((r) => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/characters/${Number(r.id)}`, imageVersion: Math.floor(new Date(r.updatedAt).getTime() / 1000) }))
+  const carouselTitleItems     = carouselTitles.map((r)     => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/titles/${Number(r.id)}`,     imageVersion: Math.floor(new Date(r.updatedAt).getTime() / 1000) }))
 
   return (
     <div>

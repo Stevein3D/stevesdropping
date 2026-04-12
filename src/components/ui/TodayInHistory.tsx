@@ -8,6 +8,7 @@ export type HistoryEvent = {
   yearsAgo: number
   name: string
   imageUrl: string | null
+  imageVersion: number | null
   href: string
   day: number
   displayDate: string // e.g. "Apr 15"
@@ -36,7 +37,7 @@ function EventCard({ event }: { event: HistoryEvent }) {
         {event.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`${event.imageUrl}?tr=w-112,q-80`}
+            src={`${event.imageUrl!.split('?')[0]}?tr=w-112,q-80${event.imageVersion ? `&ik-t=${event.imageVersion}` : ''}`}
             alt={event.name}
             className="w-full h-full object-cover"
           />

@@ -22,6 +22,7 @@ export default async function CharactersPage({
         id: true,
         name: true,
         imageUrl: true,
+        updatedAt: true,
         castings: {
           select: { personId: true, person: { select: { id: true, name: true } } },
           distinct: ['personId'],
@@ -55,7 +56,7 @@ export default async function CharactersPage({
               {character.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`${character.imageUrl}?tr=w-640,q-80`}
+                  src={`${character.imageUrl.split('?')[0]}?tr=w-640,q-80&ik-t=${Math.floor(character.updatedAt.getTime() / 1000)}`}
                   alt={character.name}
                   className="w-full h-full object-cover"
                   loading="lazy"

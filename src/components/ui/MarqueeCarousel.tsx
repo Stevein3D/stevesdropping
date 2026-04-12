@@ -6,6 +6,7 @@ type CarouselItem = {
   name: string
   imageUrl: string
   href: string
+  imageVersion?: number
 }
 
 // Target scroll speed in px/s — all rows use this
@@ -46,7 +47,7 @@ function MarqueeRow({ items, direction, itemWidth, itemHeight, itemWidthPx, ikWi
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`${item.imageUrl}?tr=w-${ikWidth},q-80`}
+              src={`${item.imageUrl.split('?')[0]}?tr=w-${ikWidth},q-80${item.imageVersion ? `&ik-t=${item.imageVersion}` : ''}`}
               alt={item.name}
               className="w-full h-full object-cover"
               loading="lazy"
