@@ -48,20 +48,22 @@ export default async function AdminImagesPage({
   }
 
   const castingRecords = sortRecords(castings.map((c) => ({
-    id:       c.id,
-    name:     `${c.person.name} as ${c.character.name}`,
-    imageUrl: c.imageUrl,
+    id:           c.id,
+    name:         `${c.person.name} as ${c.character.name}`,
+    imageUrl:     c.imageUrl,
+    cacheVersion: c.updatedAt.getTime(),
   })))
 
   const titleRecords = sortRecords(titles.map((t) => ({
-    id:       t.id,
-    name:     `${t.name}${t.year ? ` (${t.year})` : ''}`,
-    imageUrl: t.imageUrl,
-    featured: t.featured,
+    id:           t.id,
+    name:         `${t.name}${t.year ? ` (${t.year})` : ''}`,
+    imageUrl:     t.imageUrl,
+    featured:     t.featured,
+    cacheVersion: t.updatedAt.getTime(),
   })))
 
-  const peopleRecords    = sortRecords(people.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, featured: p.featured })))
-  const characterRecords = sortRecords(characters.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, featured: c.featured })))
+  const peopleRecords    = sortRecords(people.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, featured: p.featured, cacheVersion: p.updatedAt.getTime() })))
+  const characterRecords = sortRecords(characters.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, featured: c.featured, cacheVersion: c.updatedAt.getTime() })))
 
   return (
     <div className="space-y-6">

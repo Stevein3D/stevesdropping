@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { ImageUploadButton } from './ImageUploadButton'
 
 type Record = {
-  id:       number
-  name:     string
-  imageUrl: string | null
-  featured?: boolean
+  id:           number
+  name:         string
+  imageUrl:     string | null
+  featured?:    boolean
+  cacheVersion?: number
 }
 
 type Props = {
@@ -103,6 +104,7 @@ export function AdminImageSearch({
             currentUrl={record.imageUrl}
             label={labelFn(record)}
             featured={record.featured ?? false}
+            cacheVersion={record.cacheVersion}
           />
         ))}
       </div>

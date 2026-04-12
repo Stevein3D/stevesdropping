@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { imagekit } from '@/lib/imagekit'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,12 @@ export async function POST(request: NextRequest) {
     default:
       return NextResponse.json({ error: 'Unknown entity type' }, { status: 400 })
   }
+
+  // Purge CDN cache for the base URL (without any transform params)
+  const baseUrl = url.split('?')[0]
+  imagekit.purgeCache(baseUrl)
+    .then((r) => console.log('[imagekit purge]', baseUrl, r))
+    .catch((e) => console.error('[imagekit purge failed]', baseUrl, e))
 
   return NextResponse.json({ ok: true })
 }

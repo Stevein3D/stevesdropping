@@ -3,22 +3,23 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // Request a small thumbnail from ImageKit instead of the full-res image
-function ikThumb(url: string | null): string | null {
+function ikThumb(url: string | null, cb?: number): string | null {
   if (!url) return null
-  const separator = url.includes('?') ? '&' : '?'
-  return `${url}${separator}tr=w-200,q-70`
+  const base = url.split('?')[0]
+  return `${base}?tr=w-200,q-70${cb ? `&cb=${cb}` : ''}`
 }
 
 type Entity = 'person' | 'character' | 'title' | 'casting'
 
 type Props = {
-  entity:       Entity
-  id:           number
-  folder:       string
-  fileName:     string
-  currentUrl:   string | null
-  label:        string
-  featured?:    boolean
+  entity:        Entity
+  id:            number
+  folder:        string
+  fileName:      string
+  currentUrl:    string | null
+  label:         string
+  featured?:     boolean
+  cacheVersion?: number  // updatedAt.getTime() from server — busts CDN + browser cache on refresh
 }
 
 function StarBadge({ active, onClick }: { active: boolean; onClick: () => void }) {
@@ -44,10 +45,11 @@ function StarBadge({ active, onClick }: { active: boolean; onClick: () => void }
   )
 }
 
-export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, label, featured = false }: Props) {
+export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, label, featured = false, cacheVersion }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [status, setStatus]       = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
-  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl)
+  const [status, setStatus]           = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
+  const [previewUrl, setPreviewUrl]   = useState<string | null>(currentUrl)
+  const [cacheBuster, setCacheBuster] = useState<number | undefined>(cacheVersion)
   const [isFeatured, setIsFeatured]   = useState(featured)
   const [toggling, setToggling]       = useState(false)
   const [toggleError, setToggleError] = useState(false)
@@ -91,6 +93,7 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
       if (!saveRes.ok) throw new Error('Failed to save URL to database')
 
       setPreviewUrl(url)
+      setCacheBuster(Date.now())
       setStatus('done')
       router.refresh()
     } catch {
@@ -139,7 +142,7 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={ikThumb(previewUrl) ?? previewUrl}
+            src={ikThumb(previewUrl, cacheBuster) ?? previewUrl}
             alt={label}
             className="w-full h-full object-cover"
             loading="lazy"
