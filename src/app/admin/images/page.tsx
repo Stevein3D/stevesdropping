@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { BatchUploadSection } from '@/components/admin/BatchUploadSection'
 import { AdminImageSearch } from '@/components/admin/AdminImageSearch'
+import { PurgeCacheButton } from '@/components/admin/PurgeCacheButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,11 +68,14 @@ export default async function AdminImagesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pt-2 pb-2">
+      <div className="flex items-center justify-between border-b border-cream-border dark:border-warm-700 pt-2 pb-2">
         <h1 className="font-serif text-2xl font-bold text-warm-900 dark:text-warm-200">Images</h1>
-        <span className="text-xs text-warm-500">
-          {Object.values(counts).reduce((a, b) => a + b, 0)} missing
-        </span>
+        <div className="flex items-center gap-4">
+          <PurgeCacheButton entity={tab === 'people' ? 'person' : tab === 'characters' ? 'character' : tab === 'titles' ? 'title' : 'casting'} />
+          <span className="text-xs text-warm-500">
+            {Object.values(counts).reduce((a, b) => a + b, 0)} missing
+          </span>
+        </div>
       </div>
 
       {/* Tab bar */}
