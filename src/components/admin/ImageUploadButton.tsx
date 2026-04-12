@@ -3,10 +3,10 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // Request a small thumbnail from ImageKit instead of the full-res image
-function ikThumb(url: string | null, cb?: number): string | null {
+function ikThumb(url: string | null, v?: number): string | null {
   if (!url) return null
   const base = url.split('?')[0]
-  return `${base}?tr=w-200,q-70${cb ? `&cb=${cb}` : ''}`
+  return `${base}?tr=w-200,q-70${v ? `&ik-t=${v}` : ''}`
 }
 
 type Entity = 'person' | 'character' | 'title' | 'casting'
@@ -49,7 +49,7 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
   const inputRef = useRef<HTMLInputElement>(null)
   const [status, setStatus]           = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
   const [previewUrl, setPreviewUrl]   = useState<string | null>(currentUrl)
-  const [cacheBuster, setCacheBuster] = useState<number | undefined>(cacheVersion)
+  const [cacheBuster, setCacheBuster] = useState<number | undefined>(cacheVersion ? Math.floor(cacheVersion / 1000) : undefined)
   const [isFeatured, setIsFeatured]   = useState(featured)
   const [toggling, setToggling]       = useState(false)
   const [toggleError, setToggleError] = useState(false)
@@ -93,7 +93,7 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
       if (!saveRes.ok) throw new Error('Failed to save URL to database')
 
       setPreviewUrl(url)
-      setCacheBuster(Date.now())
+      setCacheBuster(Math.floor(Date.now() / 1000))
       setStatus('done')
       router.refresh()
     } catch {

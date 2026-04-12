@@ -30,11 +30,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unknown entity type' }, { status: 400 })
   }
 
-  // Purge CDN cache for the base URL (without any transform params)
-  const baseUrl = url.split('?')[0]
-  imagekit.purgeCache(baseUrl)
-    .then((r) => console.log('[imagekit purge]', baseUrl, r))
-    .catch((e) => console.error('[imagekit purge failed]', baseUrl, e))
+  // Purge CDN cache — base URL and the transformed thumbnail variant
+  const baseUrl  = url.split('?')[0]
+  const thumbUrl = `${baseUrl}?tr=w-200,q-70`
+  Promise.all([
+    imagekit.purgeCache(baseUrl),
+    imagekit.purgeCache(thumbUrl),
+  ])
+    .then(([r1, r2]) => console.log('[imagekit purge]', baseUrl, r1, r2))
+    .catch((e) => console.error('[imagekit purge failed]', e))
 
   return NextResponse.json({ ok: true })
 }
