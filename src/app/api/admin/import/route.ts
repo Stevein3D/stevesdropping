@@ -280,23 +280,35 @@ export async function POST(request: NextRequest) {
     // ── Castings ─────────────────────────────────────────────────────────────
 
     for (const row of castingRows) {
-      const id = row['Casting ID']
+      const rowId = row['Casting ID']
       try {
-        const data = {
-          personId:    row['Person ID'],
-          characterId: row['Character ID'],
-          titleId:     row['Title ID'],
-          episodeId:   row['Episode ID'],
-          notes:       row['Notes'],
+        const uniqueKey = {
+          personId_characterId_titleId_episodeId: {
+            personId:    row['Person ID'],
+            characterId: row['Character ID'],
+            titleId:     row['Title ID'],
+            episodeId:   row['Episode ID'] ?? null,
+          },
         }
-        const exists = await prisma.casting.findUnique({ where: { id }, select: { id: true } })
+        const data = {
+          notes: row['Notes'],
+        }
+        const exists = await prisma.casting.findUnique({ where: uniqueKey, select: { id: true } })
         if (exists) {
-          await prisma.casting.update({ where: { id }, data })
+          await prisma.casting.update({ where: uniqueKey, data })
         } else {
-          await prisma.casting.create({ data: { id, ...data } })
+          await prisma.casting.create({
+            data: {
+              personId:    row['Person ID'],
+              characterId: row['Character ID'],
+              titleId:     row['Title ID'],
+              episodeId:   row['Episode ID'] ?? null,
+              notes:       row['Notes'],
+            },
+          })
         }
       } catch (err) {
-        errors.push({ entity: 'casting', id, error: err instanceof Error ? err.message : String(err) })
+        errors.push({ entity: 'casting', id: rowId, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
