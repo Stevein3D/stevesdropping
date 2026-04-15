@@ -282,20 +282,17 @@ export async function POST(request: NextRequest) {
     for (const row of castingRows) {
       const rowId = row['Casting ID']
       try {
-        const uniqueKey = {
-          personId_characterId_titleId_episodeId: {
+        const match = await prisma.casting.findFirst({
+          where: {
             personId:    row['Person ID'],
             characterId: row['Character ID'],
             titleId:     row['Title ID'],
             episodeId:   row['Episode ID'] ?? null,
           },
-        }
-        const data = {
-          notes: row['Notes'],
-        }
-        const exists = await prisma.casting.findUnique({ where: uniqueKey, select: { id: true } })
-        if (exists) {
-          await prisma.casting.update({ where: uniqueKey, data })
+          select: { id: true },
+        })
+        if (match) {
+          await prisma.casting.update({ where: { id: match.id }, data: { notes: row['Notes'] } })
         } else {
           await prisma.casting.create({
             data: {
