@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
+import { EpisodeList } from '@/components/ui/EpisodeList'
+import { LightboxImage } from '@/components/ui/LightboxImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,19 +22,67 @@ export default async function PersonPage({ params }: { params: { id: string } })
     include: {
       castings: {
         include: { character: true, title: true, episode: true },
-        orderBy: { title: { year: 'desc' } },
       },
     },
   })
 
   if (!person) notFound()
 
-  const byCharacter = person.castings.reduce<Record<string, typeof person.castings>>((acc, c) => {
-    const key = c.character.name
-    if (!acc[key]) acc[key] = []
-    acc[key].push(c)
-    return acc
-  }, {})
+  type EpisodeEntry = { castingId: number; season: number | null; episodeNumber: number | null; episodeTitle: string | null }
+  type TitleGroup = {
+    titleId: number
+    title: (typeof person.castings)[0]['title']
+    castingImageUrl: string | null
+    hasFilmLevel: boolean
+    episodes: EpisodeEntry[]
+  }
+
+  // Group by character → title
+  const charMap: Record<string, { characterId: number; characterImageUrl: string | null; titles: Record<number, TitleGroup> }> = {}
+  for (const c of person.castings) {
+    const charName = c.character.name
+    if (!charMap[charName]) charMap[charName] = { characterId: c.characterId, characterImageUrl: c.character.imageUrl, titles: {} }
+    if (!charMap[charName].titles[c.titleId]) {
+      charMap[charName].titles[c.titleId] = {
+        titleId: c.titleId,
+        title: c.title,
+        castingImageUrl: c.imageUrl,
+        hasFilmLevel: false,
+        episodes: [],
+      }
+    }
+    if (c.episode) {
+      charMap[charName].titles[c.titleId].episodes.push({
+        castingId: c.id,
+        season: c.episode.season,
+        episodeNumber: c.episode.episodeNumber,
+        episodeTitle: c.episode.episodeTitle,
+      })
+    } else {
+      charMap[charName].titles[c.titleId].hasFilmLevel = true
+    }
+  }
+
+  // Sort titles by releaseDate / year desc; sort episodes by season then episode number
+  const byCharacter = Object.entries(charMap).map(([charName, { characterId, characterImageUrl, titles }]) => ({
+    charName,
+    characterId,
+    characterImageUrl,
+    titles: Object.values(titles)
+      .sort((a, b) => {
+        const aVal = a.title.releaseDate ? new Date(a.title.releaseDate).getTime() : (a.title.year ?? 0) * 1e6
+        const bVal = b.title.releaseDate ? new Date(b.title.releaseDate).getTime() : (b.title.year ?? 0) * 1e6
+        return aVal - bVal
+      })
+      .map((tg) => ({
+        ...tg,
+        episodes: [...tg.episodes].sort((a, b) =>
+          (a.season ?? 0) !== (b.season ?? 0)
+            ? (a.season ?? 0) - (b.season ?? 0)
+            : (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
+        ),
+      })),
+  }))
 
   return (
     <div className="space-y-10 max-w-3xl">
@@ -41,7 +91,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
       </Link>
 
       {/* Header */}
-      <div className="border-b border-cream-border dark:border-warm-700 pb-6 flex gap-6">
+      <div className="flex gap-6">
         {person.imageUrl && (
           <div className="w-32 shrink-0 aspect-[3/4] relative rounded-lg overflow-hidden">
             <Image
@@ -81,26 +131,38 @@ export default async function PersonPage({ params }: { params: { id: string } })
           <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
             <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Filmography</h2>
           </div>
-          {Object.entries(byCharacter).map(([charName, castings]) => (
+          {byCharacter.map(({ charName, characterId, characterImageUrl, titles }) => (
             <div key={charName} className="space-y-2">
-              <h3 className="text-sm text-warm-600 dark:text-warm-500">
-                as{' '}
-                <Link
-                  href={`/characters/${castings[0].characterId}`}
-                  className="font-serif font-bold text-steve hover:text-steve-hover transition-colors"
-                >
-                  {charName}
-                </Link>
-              </h3>
+              <div className="flex items-center gap-2">
+                {characterImageUrl && (
+                  <div className="w-8 h-8 rounded-full overflow-hidden relative shrink-0">
+                    <LightboxImage
+                      src={characterImageUrl}
+                      alt={charName}
+                      containerClassName="absolute inset-0"
+                      sizes="32px"
+                      scale={6}
+                    />
+                  </div>
+                )}
+                <h3 className="text-base text-warm-600 dark:text-warm-500">
+                  as{' '}
+                  <Link
+                    href={`/characters/${characterId}`}
+                    className="font-serif font-bold text-steve hover:text-steve-hover transition-colors"
+                  >
+                    {charName}
+                  </Link>
+                </h3>
+              </div>
               <div className="space-y-2 pl-4 border-l-2 border-cream-border dark:border-warm-700">
-                {castings.map((c) => (
-                  <div key={c.id} className="flex items-start gap-3">
-                    {/* Casting image */}
-                    {c.imageUrl && (
+                {titles.map((tg) => (
+                  <div key={tg.titleId} className="flex items-start gap-3">
+                    {tg.castingImageUrl && (
                       <div className="w-12 shrink-0 aspect-[3/4] relative rounded overflow-hidden">
                         <Image
-                          src={c.imageUrl}
-                          alt={`${person.name} as ${charName} in ${c.title.name}`}
+                          src={tg.castingImageUrl}
+                          alt={`${person.name} as ${charName} in ${tg.title.name}`}
                           fill
                           className="object-cover"
                           sizes="48px"
@@ -109,24 +171,21 @@ export default async function PersonPage({ params }: { params: { id: string } })
                     )}
                     <div className="flex items-start gap-3 flex-1">
                       <span className="font-serif text-sm font-bold text-warm-500 w-10 shrink-0 tabular-nums">
-                        {c.title.year}
+                        {tg.title.year}
                       </span>
                       <div>
                         <Link
-                          href={`/titles/${c.titleId}`}
+                          href={`/titles/${tg.titleId}`}
                           className="text-sm font-medium text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
                         >
-                          {c.title.name}
+                          {tg.title.name}
                         </Link>
-                        {c.episode && (
-                          <p className="text-xs text-warm-500 mt-0.5">
-                            S{c.episode.season}E{c.episode.episodeNumber}
-                            {c.episode.episodeTitle ? ` · "${c.episode.episodeTitle}"` : ''}
-                          </p>
-                        )}
-                        <span className="inline-block mt-1">
-                          <TitleBadge type={c.title.titleType} />
+                        <span className="inline-block ml-[8px]">
+                          <TitleBadge type={tg.title.titleType} />
                         </span>
+                        {tg.episodes.length > 0 && (
+                          <EpisodeList episodes={tg.episodes} />
+                        )}
                       </div>
                     </div>
                   </div>

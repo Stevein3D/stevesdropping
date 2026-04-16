@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
+import { SearchInput } from '@/components/ui/SearchInput'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,13 +12,17 @@ const PAGE_SIZE = 48
 export default async function CharactersPage({
   searchParams,
 }: {
-  searchParams: { page?: string }
+  searchParams: { search?: string; page?: string }
 }) {
+  const { search = '' } = searchParams
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
 
+  const where = search ? { name: { contains: search, mode: 'insensitive' as const } } : {}
+
   const [total, characters] = await Promise.all([
-    prisma.character.count(),
+    prisma.character.count({ where }),
     prisma.character.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -43,6 +48,7 @@ export default async function CharactersPage({
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Characters</h1>
         <span className="text-xs text-warm-500">{total} results</span>
       </div>
+      <SearchInput placeholder="Search characters…" paramName="search" />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {characters.map((character) => (

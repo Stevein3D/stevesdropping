@@ -52,7 +52,7 @@ export default async function TitlesPage({
           },
         },
       },
-      orderBy: { year: 'desc' },
+      orderBy: [{ titleSort: { sort: 'asc', nulls: 'last' } }, { name: 'asc' }],
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { LightboxImage } from '@/components/ui/LightboxImage'
+import { EpisodeList } from '@/components/ui/EpisodeList'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,19 +22,63 @@ export default async function CharacterPage({ params }: { params: { id: string }
     include: {
       castings: {
         include: { person: true, title: true, episode: true },
-        orderBy: { title: { year: 'asc' } },
       },
     },
   })
 
   if (!character) notFound()
 
-  const byPerson = character.castings.reduce<Record<string, typeof character.castings>>((acc, c) => {
-    const key = c.person.name
-    if (!acc[key]) acc[key] = []
-    acc[key].push(c)
-    return acc
-  }, {})
+  type EpisodeEntry = { castingId: number; season: number | null; episodeNumber: number | null; episodeTitle: string | null }
+  type TitleGroup = {
+    titleId: number
+    title: (typeof character.castings)[0]['title']
+    castingImageUrl: string | null
+    episodes: EpisodeEntry[]
+  }
+
+  // Group by person → title
+  const personMap: Record<string, { personId: number; personImageUrl: string | null; titles: Record<number, TitleGroup> }> = {}
+  for (const c of character.castings) {
+    const personName = c.person.name
+    if (!personMap[personName]) personMap[personName] = { personId: c.personId, personImageUrl: c.person.imageUrl, titles: {} }
+    if (!personMap[personName].titles[c.titleId]) {
+      personMap[personName].titles[c.titleId] = {
+        titleId: c.titleId,
+        title: c.title,
+        castingImageUrl: c.imageUrl,
+        episodes: [],
+      }
+    }
+    if (c.episode) {
+      personMap[personName].titles[c.titleId].episodes.push({
+        castingId: c.id,
+        season: c.episode.season,
+        episodeNumber: c.episode.episodeNumber,
+        episodeTitle: c.episode.episodeTitle,
+      })
+    }
+  }
+
+  // Sort titles earliest to most recent; sort episodes by season then episode number
+  const byPerson = Object.entries(personMap).map(([personName, { personId, personImageUrl, titles }]) => ({
+    personName,
+    personId,
+    personImageUrl,
+    titles: Object.values(titles)
+      .sort((a, b) => {
+        const aVal = a.title.releaseDate ? new Date(a.title.releaseDate).getTime() : (a.title.year ?? 0) * 1e6
+        const bVal = b.title.releaseDate ? new Date(b.title.releaseDate).getTime() : (b.title.year ?? 0) * 1e6
+        return aVal - bVal
+      })
+      .map((tg) => ({
+        ...tg,
+        episodes: [...tg.episodes].sort((a, b) =>
+          (a.season ?? 0) !== (b.season ?? 0)
+            ? (a.season ?? 0) - (b.season ?? 0)
+            : (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
+        ),
+      })),
+  }))
 
   return (
     <div className="space-y-10 max-w-3xl">
@@ -74,13 +119,13 @@ export default async function CharacterPage({ params }: { params: { id: string }
             Actors who played {character.name}
           </h2>
         </div>
-        {Object.entries(byPerson).map(([personName, castings]) => (
+        {byPerson.map(({ personName, personId, personImageUrl, titles }) => (
           <div key={personName} className="space-y-2">
             <div className="flex items-center gap-3">
-              {castings[0].person.imageUrl && (
+              {personImageUrl && (
                 <div className="w-8 h-8 rounded-full overflow-hidden relative shrink-0">
                   <LightboxImage
-                    src={castings[0].person.imageUrl}
+                    src={personImageUrl}
                     alt={personName}
                     containerClassName="absolute inset-0"
                     sizes="32px"
@@ -90,7 +135,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
               )}
               <h3>
                 <Link
-                  href={`/people/${castings[0].personId}`}
+                  href={`/people/${personId}`}
                   className="font-serif font-bold text-steve hover:text-steve-hover transition-colors"
                 >
                   {personName}
@@ -98,13 +143,13 @@ export default async function CharacterPage({ params }: { params: { id: string }
               </h3>
             </div>
             <div className="space-y-2 pl-4 border-l-2 border-cream-border dark:border-warm-700">
-              {castings.map((c) => (
-                <div key={c.id} className="flex items-start gap-3">
-                  {c.imageUrl && (
+              {titles.map((tg) => (
+                <div key={tg.titleId} className="flex items-start gap-3">
+                  {tg.castingImageUrl && (
                     <div className="w-12 shrink-0 aspect-[3/4] relative rounded overflow-hidden">
                       <LightboxImage
-                        src={c.imageUrl}
-                        alt={`${personName} as ${character.name} in ${c.title.name}`}
+                        src={tg.castingImageUrl}
+                        alt={`${personName} as ${character.name} in ${tg.title.name}`}
                         containerClassName="absolute inset-0"
                         sizes="48px"
                         scale={6}
@@ -113,24 +158,21 @@ export default async function CharacterPage({ params }: { params: { id: string }
                   )}
                   <div className="flex items-start gap-3 flex-1">
                     <span className="font-serif text-sm font-bold text-warm-500 w-10 shrink-0 tabular-nums">
-                      {c.title.year}
+                      {tg.title.year}
                     </span>
                     <div>
                       <Link
-                        href={`/titles/${c.titleId}`}
+                        href={`/titles/${tg.titleId}`}
                         className="text-sm font-medium text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
                       >
-                        {c.title.name}
+                        {tg.title.name}
                       </Link>
-                      {c.episode && (
-                        <p className="text-xs text-warm-500 mt-0.5">
-                          S{c.episode.season}E{c.episode.episodeNumber}
-                          {c.episode.episodeTitle ? ` · "${c.episode.episodeTitle}"` : ''}
-                        </p>
+                      <span className="inline-block ml-[8px]">
+                        <TitleBadge type={tg.title.titleType} />
+                      </span>
+                      {tg.episodes.length > 0 && (
+                        <EpisodeList episodes={tg.episodes} />
                       )}
-                      <div className="mt-2">
-                        <TitleBadge type={c.title.titleType} />
-                      </div>
                     </div>
                   </div>
                 </div>

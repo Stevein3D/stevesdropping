@@ -34,7 +34,7 @@ export default async function AdminImagesPage({
   const [people, characters, titles, castings] = await Promise.all([
     prisma.person.findMany({ orderBy: { name: 'asc' } }),
     prisma.character.findMany({ orderBy: { name: 'asc' } }),
-    prisma.title.findMany({ orderBy: { name: 'asc' } }),
+    prisma.title.findMany({ select: { id: true, name: true, titleSort: true, year: true, imageUrl: true, featured: true, updatedAt: true }, orderBy: { name: 'asc' } }),
     prisma.casting.findMany({
       include: { person: true, character: true, title: true },
       orderBy: { id: 'asc' },
@@ -55,13 +55,20 @@ export default async function AdminImagesPage({
     cacheVersion: c.updatedAt.getTime(),
   })))
 
-  const titleRecords = sortRecords(titles.map((t) => ({
-    id:           t.id,
-    name:         `${t.name}${t.year ? ` (${t.year})` : ''}`,
-    imageUrl:     t.imageUrl,
-    featured:     t.featured,
-    cacheVersion: t.updatedAt.getTime(),
-  })))
+  const titleRecords = [...titles]
+    .sort((a, b) => {
+      const aMissing = !a.imageUrl ? 0 : 1
+      const bMissing = !b.imageUrl ? 0 : 1
+      if (aMissing !== bMissing) return aMissing - bMissing
+      return (a.titleSort ?? a.name).localeCompare(b.titleSort ?? b.name)
+    })
+    .map((t) => ({
+      id:           t.id,
+      name:         `${t.name}${t.year ? ` (${t.year})` : ''}`,
+      imageUrl:     t.imageUrl,
+      featured:     t.featured,
+      cacheVersion: t.updatedAt.getTime(),
+    }))
 
   const peopleRecords    = sortRecords(people.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, featured: p.featured, cacheVersion: p.updatedAt.getTime() })))
   const characterRecords = sortRecords(characters.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, featured: c.featured, cacheVersion: c.updatedAt.getTime() })))
