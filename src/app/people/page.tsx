@@ -9,6 +9,12 @@ export const metadata = { title: 'People — Stevesdropping' }
 
 const PAGE_SIZE = 48
 
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function formatDate(date: Date): string {
+  return `${MONTH_SHORT[date.getUTCMonth()]} ${date.getUTCDate()} ${date.getUTCFullYear()}`
+}
+
 export default async function PeoplePage({
   searchParams,
 }: {
@@ -30,6 +36,8 @@ export default async function PeoplePage({
         id: true,
         name: true,
         personType: true,
+        birthDate: true,
+        deathDate: true,
         birthYear: true,
         deathYear: true,
         imageUrl: true,
@@ -93,7 +101,7 @@ export default async function PeoplePage({
           <Link
             key={person.id}
             href={`/people/${person.id}`}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 transition-colors"
+            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 transition-colors relative"
           >
             {/* Photo */}
             <div className="aspect-[3/4] relative bg-warm-100 dark:bg-warm-700">
@@ -111,26 +119,35 @@ export default async function PeoplePage({
                 </div>
               )}
             </div>
-            {/* Text */}
-            <div className="p-3">
-              {person.birthYear && (
-                <p className="text-xs text-warm-500 tracking-wide mb-0.5">
-                  b. {person.birthYear}
-                  {person.deathYear ? ` — d. ${person.deathYear}` : ''}
-                </p>
-              )}
-              <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight mb-1">
+            {/* Text — pb-10 reserves space for the absolute badge */}
+            <div className="p-3 pb-10 flex flex-col gap-0.5">
+              <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight">
                 {person.name}
               </h2>
+              {(person.birthDate || person.birthYear || person.deathDate || person.deathYear) && (
+                <p className="text-xs text-warm-500 tracking-wide">
+                  {(person.birthDate || person.birthYear) ? (
+                    <>
+                      b. {person.birthDate ? formatDate(person.birthDate) : person.birthYear}
+                      {(person.deathDate || person.deathYear) && (
+                        <> — d. {person.deathDate ? formatDate(person.deathDate) : person.deathYear}</>
+                      )}
+                    </>
+                  ) : (
+                    <>d. {person.deathDate ? formatDate(person.deathDate) : person.deathYear}</>
+                  )}
+                </p>
+              )}
               {person._count.castings > 0 && (
-                <p className="text-xs text-steve mb-1.5">
+                <p className="text-xs text-steve">
                   {person._count.castings} casting{person._count.castings !== 1 ? 's' : ''}
                 </p>
               )}
-              <span className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
-                {person.personType}
-              </span>
             </div>
+            {/* Badge — pinned to bottom-left of card */}
+            <span className="absolute bottom-3 left-3 text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
+              {person.personType}
+            </span>
           </Link>
         ))}
       </div>

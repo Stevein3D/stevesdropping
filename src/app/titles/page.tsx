@@ -104,11 +104,16 @@ export default async function TitlesPage({
       {/* TV Guide list */}
       <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
         {titles.map((title) => {
-          const uniqueChars  = Array.from(new Set(title.castings.map((c) => c.character.name)))
-          const uniquePeople = Array.from(new Set(title.castings.map((c) => c.person.name)))
-          const castingSummary = uniqueChars.length > 0
-            ? `${uniqueChars.join(', ')} · ${uniquePeople.join(', ')}`
-            : null
+          const seen = new Set<string>()
+          const uniquePairs: string[] = []
+          for (const c of title.castings) {
+            const key = `${c.person.name}|${c.character.name}`
+            if (!seen.has(key)) {
+              seen.add(key)
+              uniquePairs.push(`${c.person.name} as ${c.character.name}`)
+            }
+          }
+          const castingSummary = uniquePairs.length > 0 ? uniquePairs.join(' • ') : null
 
           return (
             <Link

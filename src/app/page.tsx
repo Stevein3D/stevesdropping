@@ -1,20 +1,20 @@
 import { prisma } from '@/lib/prisma'
-import Link from 'next/link'
 import { TodayInHistory, type HistoryEvent } from '@/components/ui/TodayInHistory'
 import { ComingUp } from '@/components/ui/ComingUp'
 import { MarqueeCarousel } from '@/components/ui/MarqueeCarousel'
+import { StatsSection } from '@/components/ui/StatsSection'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-type RawRow = { id: bigint; name: string; imageUrl: string | null; year: number; day: number; updatedAt: Date }
+type RawRow = { id: bigint; name: string; imageUrl: string | null; year: number; month: number; day: number; updatedAt: Date }
 
 function toEvent(
   row: RawRow,
   type: HistoryEvent['type'],
   hrefBase: string,
-  todayMonth: number,
   currentYear: number,
 ): HistoryEvent {
   const id = Number(row.id)
@@ -27,7 +27,7 @@ function toEvent(
     imageVersion: row.updatedAt ? Math.floor(new Date(row.updatedAt).getTime() / 1000) : null,
     href: `${hrefBase}/${id}`,
     day: Number(row.day),
-    displayDate: `${MONTH_SHORT[todayMonth - 1]} ${Number(row.day)}`,
+    displayDate: `${MONTH_SHORT[Number(row.month) - 1]} ${Number(row.day)}`,
   }
 }
 
@@ -38,8 +38,23 @@ export default async function HomePage() {
   const todayDay    = parseInt(today.toLocaleDateString('en-US', { day:    'numeric', timeZone: TZ }), 10)
   const currentYear = parseInt(today.toLocaleDateString('en-US', { year:   'numeric', timeZone: TZ }), 10)
 
-  const dateLabel  = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: TZ })
-  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', timeZone: TZ })
+  const dateLabel = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: TZ })
+
+  // 7-day look-ahead window for "Coming Up"
+  const windowEnd = new Date(today)
+  windowEnd.setDate(windowEnd.getDate() + 7)
+  const weMonth = parseInt(windowEnd.toLocaleDateString('en-US', { month: 'numeric', timeZone: TZ }), 10)
+  const weDay   = parseInt(windowEnd.toLocaleDateString('en-US', { day:   'numeric', timeZone: TZ }), 10)
+  const crossesMonth = weMonth !== todayMonth
+
+  // "May 1–7" or "Apr 30 – May 6"
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomMonth = parseInt(tomorrow.toLocaleDateString('en-US', { month: 'numeric', timeZone: TZ }), 10)
+  const tomDay   = parseInt(tomorrow.toLocaleDateString('en-US', { day:   'numeric', timeZone: TZ }), 10)
+  const weekLabel = tomMonth === weMonth
+    ? `${MONTH_SHORT[tomMonth - 1]} ${tomDay}–${weDay}`
+    : `${MONTH_SHORT[tomMonth - 1]} ${tomDay} – ${MONTH_SHORT[weMonth - 1]} ${weDay}`
 
   const [
     peopleCount, characterCount, titleCount, castingCount,
@@ -51,6 +66,7 @@ export default async function HomePage() {
     prisma.character.count(),
     prisma.title.count(),
     prisma.casting.count(),
+
     // Carousel — featured first, padded with random non-featured to min 8
     prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string; updatedAt: Date }[]>`
       WITH featured AS (
@@ -91,76 +107,142 @@ export default async function HomePage() {
       SELECT id, name, "imageUrl", "updatedAt" FROM featured
       UNION ALL
       SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
+
     // Today's events
     prisma.$queryRaw<RawRow[]>`
       SELECT id, name, "imageUrl", "updatedAt",
-             EXTRACT(YEAR FROM "birthDate")::int AS year,
-             EXTRACT(DAY  FROM "birthDate")::int AS day
+             EXTRACT(YEAR  FROM "birthDate")::int AS year,
+             EXTRACT(MONTH FROM "birthDate")::int AS month,
+             EXTRACT(DAY   FROM "birthDate")::int AS day
       FROM persons
       WHERE "birthDate" IS NOT NULL
         AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "birthDate") = ${todayDay}`,
     prisma.$queryRaw<RawRow[]>`
       SELECT id, name, "imageUrl", "updatedAt",
-             EXTRACT(YEAR FROM "deathDate")::int AS year,
-             EXTRACT(DAY  FROM "deathDate")::int AS day
+             EXTRACT(YEAR  FROM "deathDate")::int AS year,
+             EXTRACT(MONTH FROM "deathDate")::int AS month,
+             EXTRACT(DAY   FROM "deathDate")::int AS day
       FROM persons
       WHERE "deathDate" IS NOT NULL
         AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "deathDate") = ${todayDay}`,
     prisma.$queryRaw<RawRow[]>`
       SELECT id, name, "imageUrl", "updatedAt",
-             EXTRACT(YEAR FROM "releaseDate")::int AS year,
-             EXTRACT(DAY  FROM "releaseDate")::int AS day
+             EXTRACT(YEAR  FROM "releaseDate")::int AS year,
+             EXTRACT(MONTH FROM "releaseDate")::int AS month,
+             EXTRACT(DAY   FROM "releaseDate")::int AS day
       FROM titles
       WHERE "releaseDate" IS NOT NULL
         AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
         AND EXTRACT(DAY   FROM "releaseDate") = ${todayDay}`,
-    // Coming up (rest of month)
-    prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl", "updatedAt",
-             EXTRACT(YEAR FROM "birthDate")::int AS year,
-             EXTRACT(DAY  FROM "birthDate")::int AS day
-      FROM persons
-      WHERE "birthDate" IS NOT NULL
-        AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
-        AND EXTRACT(DAY   FROM "birthDate") > ${todayDay}`,
-    prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl", "updatedAt",
-             EXTRACT(YEAR FROM "deathDate")::int AS year,
-             EXTRACT(DAY  FROM "deathDate")::int AS day
-      FROM persons
-      WHERE "deathDate" IS NOT NULL
-        AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
-        AND EXTRACT(DAY   FROM "deathDate") > ${todayDay}`,
-    prisma.$queryRaw<RawRow[]>`
-      SELECT id, name, "imageUrl", "updatedAt",
-             EXTRACT(YEAR FROM "releaseDate")::int AS year,
-             EXTRACT(DAY  FROM "releaseDate")::int AS day
-      FROM titles
-      WHERE "releaseDate" IS NOT NULL
-        AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
-        AND EXTRACT(DAY   FROM "releaseDate") > ${todayDay}`,
+
+    // Coming up — next 7 days, handles month rollover
+    crossesMonth
+      ? prisma.$queryRaw<RawRow[]>`
+          (SELECT id, name, "imageUrl", "updatedAt",
+                  EXTRACT(YEAR  FROM "birthDate")::int AS year,
+                  EXTRACT(MONTH FROM "birthDate")::int AS month,
+                  EXTRACT(DAY   FROM "birthDate")::int AS day
+           FROM persons
+           WHERE "birthDate" IS NOT NULL
+             AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
+             AND EXTRACT(DAY   FROM "birthDate") > ${todayDay})
+          UNION ALL
+          (SELECT id, name, "imageUrl", "updatedAt",
+                  EXTRACT(YEAR  FROM "birthDate")::int AS year,
+                  EXTRACT(MONTH FROM "birthDate")::int AS month,
+                  EXTRACT(DAY   FROM "birthDate")::int AS day
+           FROM persons
+           WHERE "birthDate" IS NOT NULL
+             AND EXTRACT(MONTH FROM "birthDate") = ${weMonth}
+             AND EXTRACT(DAY   FROM "birthDate") <= ${weDay})`
+      : prisma.$queryRaw<RawRow[]>`
+          SELECT id, name, "imageUrl", "updatedAt",
+                 EXTRACT(YEAR  FROM "birthDate")::int AS year,
+                 EXTRACT(MONTH FROM "birthDate")::int AS month,
+                 EXTRACT(DAY   FROM "birthDate")::int AS day
+          FROM persons
+          WHERE "birthDate" IS NOT NULL
+            AND EXTRACT(MONTH FROM "birthDate") = ${todayMonth}
+            AND EXTRACT(DAY   FROM "birthDate") > ${todayDay}
+            AND EXTRACT(DAY   FROM "birthDate") <= ${weDay}`,
+
+    crossesMonth
+      ? prisma.$queryRaw<RawRow[]>`
+          (SELECT id, name, "imageUrl", "updatedAt",
+                  EXTRACT(YEAR  FROM "deathDate")::int AS year,
+                  EXTRACT(MONTH FROM "deathDate")::int AS month,
+                  EXTRACT(DAY   FROM "deathDate")::int AS day
+           FROM persons
+           WHERE "deathDate" IS NOT NULL
+             AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
+             AND EXTRACT(DAY   FROM "deathDate") > ${todayDay})
+          UNION ALL
+          (SELECT id, name, "imageUrl", "updatedAt",
+                  EXTRACT(YEAR  FROM "deathDate")::int AS year,
+                  EXTRACT(MONTH FROM "deathDate")::int AS month,
+                  EXTRACT(DAY   FROM "deathDate")::int AS day
+           FROM persons
+           WHERE "deathDate" IS NOT NULL
+             AND EXTRACT(MONTH FROM "deathDate") = ${weMonth}
+             AND EXTRACT(DAY   FROM "deathDate") <= ${weDay})`
+      : prisma.$queryRaw<RawRow[]>`
+          SELECT id, name, "imageUrl", "updatedAt",
+                 EXTRACT(YEAR  FROM "deathDate")::int AS year,
+                 EXTRACT(MONTH FROM "deathDate")::int AS month,
+                 EXTRACT(DAY   FROM "deathDate")::int AS day
+          FROM persons
+          WHERE "deathDate" IS NOT NULL
+            AND EXTRACT(MONTH FROM "deathDate") = ${todayMonth}
+            AND EXTRACT(DAY   FROM "deathDate") > ${todayDay}
+            AND EXTRACT(DAY   FROM "deathDate") <= ${weDay}`,
+
+    crossesMonth
+      ? prisma.$queryRaw<RawRow[]>`
+          (SELECT id, name, "imageUrl", "updatedAt",
+                  EXTRACT(YEAR  FROM "releaseDate")::int AS year,
+                  EXTRACT(MONTH FROM "releaseDate")::int AS month,
+                  EXTRACT(DAY   FROM "releaseDate")::int AS day
+           FROM titles
+           WHERE "releaseDate" IS NOT NULL
+             AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
+             AND EXTRACT(DAY   FROM "releaseDate") > ${todayDay})
+          UNION ALL
+          (SELECT id, name, "imageUrl", "updatedAt",
+                  EXTRACT(YEAR  FROM "releaseDate")::int AS year,
+                  EXTRACT(MONTH FROM "releaseDate")::int AS month,
+                  EXTRACT(DAY   FROM "releaseDate")::int AS day
+           FROM titles
+           WHERE "releaseDate" IS NOT NULL
+             AND EXTRACT(MONTH FROM "releaseDate") = ${weMonth}
+             AND EXTRACT(DAY   FROM "releaseDate") <= ${weDay})`
+      : prisma.$queryRaw<RawRow[]>`
+          SELECT id, name, "imageUrl", "updatedAt",
+                 EXTRACT(YEAR  FROM "releaseDate")::int AS year,
+                 EXTRACT(MONTH FROM "releaseDate")::int AS month,
+                 EXTRACT(DAY   FROM "releaseDate")::int AS day
+          FROM titles
+          WHERE "releaseDate" IS NOT NULL
+            AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
+            AND EXTRACT(DAY   FROM "releaseDate") > ${todayDay}
+            AND EXTRACT(DAY   FROM "releaseDate") <= ${weDay}`,
   ])
 
   const todayEvents: HistoryEvent[] = [
-    ...bornToday.map((r)     => toEvent(r, 'born',     '/people', todayMonth, currentYear)),
-    ...diedToday.map((r)     => toEvent(r, 'died',     '/people', todayMonth, currentYear)),
-    ...releasedToday.map((r) => toEvent(r, 'released', '/titles', todayMonth, currentYear)),
+    ...bornToday.map((r)     => toEvent(r, 'born',     '/people', currentYear)),
+    ...diedToday.map((r)     => toEvent(r, 'died',     '/people', currentYear)),
+    ...releasedToday.map((r) => toEvent(r, 'released', '/titles', currentYear)),
   ]
 
+  // Sort by month*100+day so cross-month events (e.g. Apr 30 → May 1-6) order correctly
   const comingUpEvents: HistoryEvent[] = [
-    ...bornComing.map((r)     => toEvent(r, 'born',     '/people', todayMonth, currentYear)),
-    ...diedComing.map((r)     => toEvent(r, 'died',     '/people', todayMonth, currentYear)),
-    ...releasedComing.map((r) => toEvent(r, 'released', '/titles', todayMonth, currentYear)),
-  ].sort((a, b) => a.day - b.day)
-
-  const stats = [
-    { label: 'People',     value: peopleCount,    href: '/people' },
-    { label: 'Characters', value: characterCount,  href: '/characters' },
-    { label: 'Titles',     value: titleCount,      href: '/titles' },
-    { label: 'Castings',   value: castingCount,    href: '/people' },
+    ...bornComing.map((r)     => ({ r, type: 'born'     as const, base: '/people' })),
+    ...diedComing.map((r)     => ({ r, type: 'died'     as const, base: '/people' })),
+    ...releasedComing.map((r) => ({ r, type: 'released' as const, base: '/titles' })),
   ]
+    .sort((a, b) => (Number(a.r.month) * 100 + Number(a.r.day)) - (Number(b.r.month) * 100 + Number(b.r.day)))
+    .map(({ r, type, base }) => toEvent(r, type, base, currentYear))
 
   const carouselPeopleItems    = carouselPeople.map((r)     => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/people/${Number(r.id)}`,     imageVersion: Math.floor(new Date(r.updatedAt).getTime() / 1000) }))
   const carouselCharacterItems = carouselCharacters.map((r) => ({ id: Number(r.id), name: r.name, imageUrl: r.imageUrl, href: `/characters/${Number(r.id)}`, imageVersion: Math.floor(new Date(r.updatedAt).getTime() / 1000) }))
@@ -182,14 +264,12 @@ export default async function HomePage() {
               A catalog of every Steve across film, television, and beyond —
               real people and the characters they play.
             </p>
-            <div className="flex gap-6 mt-6 flex-wrap">
-              {stats.map(({ label, value, href }) => (
-                <Link key={label} href={href} className="group">
-                  <div className="font-serif text-3xl font-bold text-steve leading-none group-hover:text-steve-hover transition-colors">{value}</div>
-                  <div className="text-xs text-warm-500 tracking-widest uppercase mt-1">{label}</div>
-                </Link>
-              ))}
-            </div>
+            <StatsSection
+              people={peopleCount}
+              characters={characterCount}
+              titles={titleCount}
+              castings={castingCount}
+            />
           </div>
 
           {/* Right — marquee carousel, hidden on mobile */}
@@ -207,7 +287,7 @@ export default async function HomePage() {
       <TodayInHistory events={todayEvents} dateLabel={dateLabel} />
 
       {/* Coming Up */}
-      <ComingUp events={comingUpEvents} monthLabel={monthLabel} />
+      <ComingUp events={comingUpEvents} weekLabel={weekLabel} />
 
       {/* Browse cards */}
       <section className="grid md:grid-cols-3 gap-4">

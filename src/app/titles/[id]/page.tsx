@@ -75,7 +75,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       {filmCastings.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
-            <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Steve Cast</h2>
+            <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Steve Appearances</h2>
           </div>
           <div className="space-y-2">
             {filmCastings.map((c) => (
@@ -171,8 +171,13 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                                 />
                               </div>
                             )}
-                            <span className="text-steve font-medium">{c.person.name}</span>
-                            {' '}as {c.character.name}
+                            <Link href={`/people/${c.personId}`} className="text-steve font-medium hover:text-steve-hover transition-colors no-underline">
+                              {c.person.name}
+                            </Link>
+                            {' as '}
+                            <Link href={`/characters/${c.characterId}`} className="text-warm-600 dark:text-warm-500 hover:text-steve transition-colors no-underline">
+                              {c.character.name}
+                            </Link>
                           </span>
                         ))}
                       </div>

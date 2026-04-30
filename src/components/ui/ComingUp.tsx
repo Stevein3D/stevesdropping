@@ -7,14 +7,14 @@ const TYPE_LABEL: Record<HistoryEvent['type'], string> = {
   released: 'Released',
 }
 
-export function ComingUp({ events, monthLabel }: { events: HistoryEvent[]; monthLabel: string }) {
+export function ComingUp({ events, weekLabel }: { events: HistoryEvent[]; weekLabel: string }) {
   if (events.length === 0) return null
 
   return (
     <section className="mb-8">
       <div className="flex items-baseline justify-between mb-3">
         <h2 className="font-serif text-lg font-bold text-warm-900 dark:text-warm-200">Coming Up</h2>
-        <span className="text-sm font-medium text-warm-500">Later in {monthLabel}</span>
+        <span className="text-sm font-medium text-warm-500">{weekLabel}</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
