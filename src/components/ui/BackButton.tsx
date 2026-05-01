@@ -7,7 +7,7 @@ export function BackButton({ label = 'Back' }: { label?: string }) {
   return (
     <button
       onClick={() => router.back()}
-      className="group relative inline-flex items-center gap-1.5 text-sm text-warm-600 hover:text-steve transition-colors duration-200 cursor-pointer rounded-md px-3 py-1 border border-cream-border dark:border-warm-700 overflow-hidden"
+      className="group relative inline-flex items-center gap-1.5 text-sm text-warm-600 dark:text-warm-500 hover:text-steve transition-colors duration-200 cursor-pointer rounded-md px-3 py-1 border border-cream-border dark:border-warm-700 overflow-hidden"
     >
       {/* Chevron — springs left on hover */}
       <svg

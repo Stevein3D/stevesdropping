@@ -17,7 +17,7 @@ const TYPE_LABEL: Record<HistoryEvent['type'], string> = {
 
 const TYPE_STYLE: Record<HistoryEvent['type'], string> = {
   born:     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-  died:     'bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-400',
+  died:     'bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500',
   released: 'bg-steve/10 text-steve',
 }
 
@@ -44,7 +44,7 @@ function EventCard({ event }: { event: HistoryEvent }) {
           </span>
           <p className="text-sm font-medium text-warm-900 dark:text-warm-200 leading-tight line-clamp-2">{event.name}</p>
         </div>
-        <p className="text-[11px] text-warm-600">
+        <p className="text-[11px] text-warm-600 dark:text-warm-500">
           {event.year}
           {event.yearsAgo > 0 && ` · ${event.yearsAgo} yrs ago`}
         </p>
@@ -86,7 +86,7 @@ export function SteveOnADate() {
         <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
           Date a Steve
         </h2>
-        <p className="text-sm text-warm-600 mt-0.5">
+        <p className="text-sm text-warm-600 dark:text-warm-500 mt-0.5">
           Pick any date to see who was born, died, or what was released.
         </p>
       </div>
@@ -105,7 +105,7 @@ export function SteveOnADate() {
               <option key={m} value={String(i + 1)}>{m}</option>
             ))}
           </select>
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
@@ -144,10 +144,10 @@ export function SteveOnADate() {
 
       {events !== null && (
         events.length === 0 ? (
-          <p className="text-sm text-warm-600 italic">Nothing on record for {submittedLabel}.</p>
+          <p className="text-sm text-warm-600 dark:text-warm-500 italic">Nothing on record for {submittedLabel}.</p>
         ) : (
           <>
-            <p className="text-xs text-warm-600 mb-3">
+            <p className="text-xs text-warm-600 dark:text-warm-500 mb-3">
               {events.length} result{events.length !== 1 ? 's' : ''} for {submittedLabel}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

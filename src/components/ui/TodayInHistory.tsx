@@ -22,7 +22,7 @@ const TYPE_LABEL: Record<HistoryEvent['type'], string> = {
 
 const TYPE_STYLE: Record<HistoryEvent['type'], string> = {
   born:     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-  died:     'bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-400',
+  died:     'bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500',
   released: 'bg-steve/10 text-steve',
 }
 
@@ -52,7 +52,7 @@ function EventCard({ event }: { event: HistoryEvent }) {
           </span>
           <p className="text-sm font-medium text-warm-900 dark:text-warm-200 leading-tight line-clamp-2">{event.name}</p>
         </div>
-        <p className="text-[11px] text-warm-600">
+        <p className="text-[11px] text-warm-600 dark:text-warm-500">
           {event.year}
           {event.yearsAgo > 0 && ` · ${event.yearsAgo} yrs ago`}
         </p>
@@ -73,11 +73,11 @@ export function TodayInHistory({ events, dateLabel }: { events: HistoryEvent[]; 
         <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
           Today in Steve History
         </h2>
-        <span className="text-sm font-medium text-warm-600">{dateLabel}</span>
+        <span className="text-sm font-medium text-warm-600 dark:text-warm-500">{dateLabel}</span>
       </div>
 
       {events.length === 0 ? (
-        <p className="text-sm text-warm-600 italic">Nothing on record for today.</p>
+        <p className="text-sm text-warm-600 dark:text-warm-500 italic">Nothing on record for today.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -91,7 +91,7 @@ export function TodayInHistory({ events, dateLabel }: { events: HistoryEvent[]; 
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="text-warm-600 hover:text-steve transition-colors disabled:opacity-50"
+                className="text-warm-600 dark:text-warm-500 hover:text-steve transition-colors disabled:opacity-50"
                 aria-label="Previous page"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -115,7 +115,7 @@ export function TodayInHistory({ events, dateLabel }: { events: HistoryEvent[]; 
               <button
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page === totalPages - 1}
-                className="text-warm-600 hover:text-steve transition-colors disabled:opacity-50"
+                className="text-warm-600 dark:text-warm-500 hover:text-steve transition-colors disabled:opacity-50"
                 aria-label="Next page"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

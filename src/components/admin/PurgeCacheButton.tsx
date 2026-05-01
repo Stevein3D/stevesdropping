@@ -40,7 +40,7 @@ export function PurgeCacheButton({ entity }: Props) {
       className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 ${
         status === 'done'  ? 'border-emerald-400 text-emerald-600 dark:text-emerald-400' :
         status === 'error' ? 'border-steve text-steve' :
-        'border-cream-border dark:border-warm-700 text-warm-600 hover:border-steve hover:text-steve dark:hover:border-warm-200'
+        'border-cream-border dark:border-warm-700 text-warm-600 dark:text-warm-500 hover:border-steve hover:text-steve dark:hover:border-warm-200'
       }`}
     >
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"

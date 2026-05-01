@@ -109,7 +109,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
               {person.personType}
             </span>
           </div>
-          <p className="text-sm text-warm-600">
+          <p className="text-sm text-warm-600 dark:text-warm-500">
             {[
               person.birthYear && `b. ${person.birthYear}`,
               person.deathYear && `d. ${person.deathYear}`,
@@ -169,7 +169,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
                       </div>
                     )}
                     <div className="flex items-start gap-3 flex-1">
-                      <span className="font-serif text-sm font-bold text-warm-600 w-10 shrink-0 tabular-nums">
+                      <span className="font-serif text-sm font-bold text-warm-600 dark:text-warm-500 w-10 shrink-0 tabular-nums">
                         {tg.title.year}
                       </span>
                       <div>
@@ -194,7 +194,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
           ))}
         </section>
       ) : (
-        <p className="text-warm-600 text-sm">No castings recorded yet.</p>
+        <p className="text-warm-600 dark:text-warm-500 text-sm">No castings recorded yet.</p>
       )}
     </div>
   )

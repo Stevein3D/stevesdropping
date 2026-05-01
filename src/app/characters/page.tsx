@@ -46,7 +46,7 @@ export default async function CharactersPage({
     <div className="space-y-8">
       <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Characters</h1>
-        <span className="text-xs text-warm-600">{total} results</span>
+        <span className="text-xs text-warm-600 dark:text-warm-500">{total} results</span>
       </div>
       <SearchInput placeholder="Search characters…" paramName="search" />
 

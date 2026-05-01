@@ -148,7 +148,7 @@ export function ImageUploadButton({ entity, id, folder, fileName, currentUrl, la
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-warm-600 text-xs">
+          <div className="w-full h-full flex items-center justify-center text-warm-600 dark:text-warm-500 text-xs">
             No image
           </div>
         )}

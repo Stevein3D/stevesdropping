@@ -18,7 +18,7 @@ export function EpisodeList({ episodes }: { episodes: EpisodeEntry[] }) {
   return (
     <div className="mt-1 space-y-0.5">
       {visible.map((ep) => (
-        <p key={ep.castingId} className="text-sm text-warm-600">
+        <p key={ep.castingId} className="text-sm text-warm-600 dark:text-warm-500">
           {ep.season != null && ep.episodeNumber != null
             ? `S${ep.season}E${ep.episodeNumber}`
             : ep.season != null

@@ -72,12 +72,12 @@ export default function ImportPage() {
           {file ? (
             <div>
               <p className="font-medium text-warm-900 dark:text-warm-200 text-sm">{file.name}</p>
-              <p className="text-xs text-warm-600 mt-1">{(file.size / 1024).toFixed(1)} KB — click to change</p>
+              <p className="text-xs text-warm-600 dark:text-warm-500 mt-1">{(file.size / 1024).toFixed(1)} KB — click to change</p>
             </div>
           ) : (
             <div>
               <p className="text-sm text-warm-600 dark:text-warm-500">Click to select an XLSX file</p>
-              <p className="text-xs text-warm-600 mt-1">Expects sheets: Person, Character, Title, Episode, Casting</p>
+              <p className="text-xs text-warm-600 dark:text-warm-500 mt-1">Expects sheets: Person, Character, Title, Episode, Casting</p>
             </div>
           )}
         </div>
@@ -114,7 +114,7 @@ export default function ImportPage() {
                     {result.errors.map((e, i) => (
                       <div key={i} className="px-3 py-2 border-b border-cream-border dark:border-warm-700 last:border-b-0 text-xs">
                         <span className="font-medium text-warm-900 dark:text-warm-200 capitalize">{e.entity} #{e.id}</span>
-                        <span className="text-warm-600 mx-1.5">—</span>
+                        <span className="text-warm-600 dark:text-warm-500 mx-1.5">—</span>
                         <span className="text-steve">{e.error}</span>
                       </div>
                     ))}

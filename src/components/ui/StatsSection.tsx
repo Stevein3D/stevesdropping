@@ -58,7 +58,7 @@ function StatItem({
       <div className="font-serif text-3xl font-bold text-steve leading-none group-hover:text-steve-hover transition-colors tabular-nums">
         {count.toLocaleString()}
       </div>
-      <div className="text-xs text-warm-600 tracking-widest uppercase mt-1">{label}</div>
+      <div className="text-xs text-warm-600 dark:text-warm-500 tracking-widest uppercase mt-1">{label}</div>
     </Link>
   )
 }

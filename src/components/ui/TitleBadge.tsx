@@ -5,8 +5,8 @@ const BADGE_STYLES: Record<string, string> = {
   tv_miniseries:  'bg-[#7a5230] text-[#fdf6e3]',
   animated:       'bg-[#4a6a2a] text-[#fdf6e3]',
   documentary:    'bg-[#2a4a6a] text-[#fdf6e3]',
-  video:          'bg-warm-100 text-warm-600',
-  other:          'bg-warm-100 text-warm-600',
+  video:          'bg-warm-100 text-warm-600 dark:text-warm-500',
+  other:          'bg-warm-100 text-warm-600 dark:text-warm-500',
 }
 
 const BADGE_LABELS: Record<string, string> = {

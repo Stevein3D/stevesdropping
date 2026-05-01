@@ -64,7 +64,7 @@ export default async function TitlesPage({
     <div className="space-y-8">
       <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Titles</h1>
-        <span className="text-xs text-warm-600">{total} results</span>
+        <span className="text-xs text-warm-600 dark:text-warm-500">{total} results</span>
       </div>
 
       {/* Filters */}
@@ -81,7 +81,7 @@ export default async function TitlesPage({
               <option key={val} value={val}>{label}</option>
             ))}
           </select>
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
@@ -134,7 +134,7 @@ export default async function TitlesPage({
                   />
                 )}
               </div>
-              <span className="font-serif text-sm font-bold text-warm-600 tabular-nums">{title.year}</span>
+              <span className="font-serif text-sm font-bold text-warm-600 dark:text-warm-500 tabular-nums">{title.year}</span>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-warm-900 dark:text-warm-200 truncate">{title.name}</p>
                 {castingSummary && (
@@ -148,7 +148,7 @@ export default async function TitlesPage({
       </div>
 
       {titles.length === 0 && (
-        <p className="text-warm-600 text-center py-20">No titles found matching your search.</p>
+        <p className="text-warm-600 dark:text-warm-500 text-center py-20">No titles found matching your search.</p>
       )}
 
       <Pagination page={page} totalPages={totalPages} basePath="/titles" />

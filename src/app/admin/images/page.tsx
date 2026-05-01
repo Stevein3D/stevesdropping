@@ -79,7 +79,7 @@ export default async function AdminImagesPage({
         <h1 className="font-serif text-2xl font-bold text-warm-900 dark:text-warm-200">Images</h1>
         <div className="flex items-center gap-4">
           <PurgeCacheButton entity={tab === 'people' ? 'person' : tab === 'characters' ? 'character' : tab === 'titles' ? 'title' : 'casting'} />
-          <span className="text-xs text-warm-600">
+          <span className="text-xs text-warm-600 dark:text-warm-500">
             {Object.values(counts).reduce((a, b) => a + b, 0)} missing
           </span>
         </div>
@@ -99,7 +99,7 @@ export default async function AdminImagesPage({
           >
             {label}
             {counts[key] > 0 && (
-              <span className="ml-1.5 text-[10px] bg-warm-100 dark:bg-warm-700 text-warm-600 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 text-[10px] bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-1.5 py-0.5 rounded-full">
                 {counts[key]}
               </span>
             )}
