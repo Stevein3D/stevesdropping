@@ -59,7 +59,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
             <h1 className="font-serif text-4xl font-black text-warm-900 dark:text-warm-200">{title.name}</h1>
             <TitleBadge type={title.titleType} />
           </div>
-          <p className="text-sm text-warm-500">
+          <p className="text-sm text-warm-600">
             {[title.year, title.genre, title.runtime ? `${title.runtime} min` : null]
               .filter(Boolean)
               .join(' · ')}
@@ -102,7 +102,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                 >
                   {c.person.name}
                 </Link>
-                <span className="text-warm-500 text-sm">as</span>
+                <span className="text-warm-600 text-sm">as</span>
                 <Link
                   href={`/characters/${c.characterId}`}
                   className="text-steve hover:text-steve-hover transition-colors text-sm font-medium"
@@ -122,7 +122,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                   </div>
                 )}
                 {c.notes && !c.imageUrl && (
-                  <span className="text-xs text-warm-500 ml-auto">{c.notes}</span>
+                  <span className="text-xs text-warm-600 ml-auto">{c.notes}</span>
                 )}
               </div>
             ))}
@@ -145,7 +145,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                 className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-4"
               >
                 <div className="flex items-start gap-3">
-                  <span className="font-serif text-xs font-bold text-warm-500 border border-cream-border dark:border-warm-700 rounded px-2 py-0.5 shrink-0 tabular-nums">
+                  <span className="font-serif text-xs font-bold text-warm-600 border border-cream-border dark:border-warm-700 rounded px-2 py-0.5 shrink-0 tabular-nums">
                     S{ep.season}E{ep.episodeNumber}
                   </span>
                   <div className="flex-1">
@@ -153,7 +153,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                       {ep.episodeTitle ?? 'Untitled Episode'}
                     </p>
                     {ep.description && (
-                      <p className="text-xs text-warm-500 mt-1">{ep.description}</p>
+                      <p className="text-xs text-warm-600 mt-1">{ep.description}</p>
                     )}
                     {ep.castings.length > 0 && (
                       <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -183,7 +183,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                     )}
                   </div>
                   {ep.runtime && (
-                    <span className="text-xs text-warm-500 shrink-0">{ep.runtime} min</span>
+                    <span className="text-xs text-warm-600 shrink-0">{ep.runtime} min</span>
                   )}
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       )}
 
       {filmCastings.length === 0 && title.episodes.length === 0 && (
-        <p className="text-warm-500 text-sm">No Steve castings recorded yet.</p>
+        <p className="text-warm-600 text-sm">No Steve castings recorded yet.</p>
       )}
     </div>
   )

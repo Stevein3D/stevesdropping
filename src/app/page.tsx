@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { TodayInHistory, type HistoryEvent } from '@/components/ui/TodayInHistory'
 import { ComingUp } from '@/components/ui/ComingUp'
+import { SteveOnADate } from '@/components/ui/SteveOnADate'
 import { MarqueeCarousel } from '@/components/ui/MarqueeCarousel'
 import { StatsSection } from '@/components/ui/StatsSection'
 import Link from 'next/link'
@@ -288,6 +289,9 @@ export default async function HomePage() {
 
       {/* Coming Up */}
       <ComingUp events={comingUpEvents} weekLabel={weekLabel} />
+
+      {/* Take Steve on a Date */}
+      <SteveOnADate />
 
       {/* Browse cards */}
       <section className="grid md:grid-cols-3 gap-4">

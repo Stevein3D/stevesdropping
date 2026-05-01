@@ -11,10 +11,10 @@ export function ComingUp({ events, weekLabel }: { events: HistoryEvent[]; weekLa
   if (events.length === 0) return null
 
   return (
-    <section className="mb-8">
+    <section className="pb-8 border-b border-cream-border dark:border-warm-700 mb-8">
       <div className="flex items-baseline justify-between mb-3">
-        <h2 className="font-serif text-lg font-bold text-warm-900 dark:text-warm-200">Coming Up</h2>
-        <span className="text-sm font-medium text-warm-500">{weekLabel}</span>
+        <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Coming Up</h2>
+        <span className="text-sm font-medium text-warm-600">{weekLabel}</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -36,7 +36,7 @@ export function ComingUp({ events, weekLabel }: { events: HistoryEvent[]; weekLa
             </div>
             <div className="min-w-0">
               <p className="text-xs font-medium text-warm-900 dark:text-warm-200 truncate leading-tight">{event.name}</p>
-              <p className="text-[10px] text-warm-500 truncate">
+              <p className="text-[10px] text-warm-600 truncate">
                 {TYPE_LABEL[event.type]} · {event.displayDate}
               </p>
             </div>

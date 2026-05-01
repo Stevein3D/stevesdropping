@@ -37,7 +37,7 @@ export function Pagination({ page, totalPages, basePath }: Props) {
         <span className="text-sm text-warm-300 dark:text-warm-700">← Previous</span>
       )}
 
-      <span className="text-xs text-warm-500">
+      <span className="text-xs text-warm-600">
         Page {page} of {totalPages}
       </span>
 

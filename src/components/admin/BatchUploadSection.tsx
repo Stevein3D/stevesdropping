@@ -132,7 +132,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
     <div className="border border-cream-border dark:border-warm-700 rounded-lg p-4 space-y-4 mb-6">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-warm-900 dark:text-warm-200">Batch Upload</p>
-        <p className="text-xs text-warm-500">
+        <p className="text-xs text-warm-600">
           Files are matched by ID (e.g. 10001.jpg) or name (e.g. Chris Evans.jpg)
         </p>
       </div>
@@ -152,7 +152,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
           {/* Matched */}
           {matched.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs text-warm-500 uppercase tracking-wide">
+              <p className="text-xs text-warm-600 uppercase tracking-wide">
                 Matched — {matched.length} file{matched.length !== 1 ? 's' : ''}
               </p>
               <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-y-auto max-h-[420px]">
@@ -166,7 +166,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
                     <span className={
                       item.status === 'done'      ? 'text-green-600'
                       : item.status === 'error'   ? 'text-steve'
-                      : item.status === 'uploading' ? 'text-warm-500 animate-pulse'
+                      : item.status === 'uploading' ? 'text-warm-600 animate-pulse'
                       : 'text-warm-400'
                     }>
                       {item.status === 'done'      ? '✓ Done'
@@ -183,7 +183,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
           {/* Unmatched */}
           {unmatched.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs text-warm-500 uppercase tracking-wide">
+              <p className="text-xs text-warm-600 uppercase tracking-wide">
                 Unmatched — {unmatched.length} file{unmatched.length !== 1 ? 's' : ''} (will be skipped)
               </p>
               <div className="border border-cream-subtle dark:border-warm-700 rounded-lg overflow-y-auto max-h-[420px] opacity-60">
@@ -215,7 +215,7 @@ export function BatchUploadSection({ records, entity, folder }: Props) {
             <button
               onClick={reset}
               disabled={uploading}
-              className="text-xs text-warm-500 hover:text-steve transition-colors disabled:opacity-40"
+              className="text-xs text-warm-600 hover:text-steve transition-colors disabled:opacity-40"
             >
               Clear
             </button>

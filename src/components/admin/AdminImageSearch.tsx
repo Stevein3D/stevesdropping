@@ -88,7 +88,7 @@ export function AdminImageSearch({
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-sm text-warm-500 py-4">
+        <p className="text-sm text-warm-600 py-4">
           {showcasedOnly ? 'No showcased entries yet.' : `No results for "${query}"`}
         </p>
       )}
@@ -110,7 +110,7 @@ export function AdminImageSearch({
       </div>
 
       {(query || showcasedOnly) && filtered.length > 0 && (
-        <p className="text-xs text-warm-500">
+        <p className="text-xs text-warm-600">
           {filtered.length} of {records.length} shown
         </p>
       )}

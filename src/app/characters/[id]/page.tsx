@@ -156,7 +156,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
                     </div>
                   )}
                   <div className="flex items-start gap-3 flex-1">
-                    <span className="font-serif text-sm font-bold text-warm-500 w-10 shrink-0 tabular-nums">
+                    <span className="font-serif text-sm font-bold text-warm-600 w-10 shrink-0 tabular-nums">
                       {tg.title.year}
                     </span>
                     <div>
