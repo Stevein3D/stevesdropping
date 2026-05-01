@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { HistoryEvent } from './TodayInHistory'
 
@@ -53,6 +53,8 @@ function EventCard({ event }: { event: HistoryEvent }) {
   )
 }
 
+const SESSION_KEY = 'steve-on-a-date'
+
 export function SteveOnADate() {
   const [month, setMonth] = useState('')
   const [day, setDay] = useState('')
@@ -60,6 +62,20 @@ export function SteveOnADate() {
   const [events, setEvents] = useState<HistoryEvent[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [submittedLabel, setSubmittedLabel] = useState('')
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY)
+      if (saved) {
+        const { month, day, year, events, submittedLabel } = JSON.parse(saved)
+        setMonth(month)
+        setDay(day)
+        setYear(year)
+        setEvents(events)
+        setSubmittedLabel(submittedLabel)
+      }
+    } catch {}
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,6 +94,10 @@ export function SteveOnADate() {
     const data: HistoryEvent[] = await res.json()
     setEvents(data)
     setLoading(false)
+
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ month, day, year, events: data, submittedLabel: label }))
+    } catch {}
   }
 
   return (
