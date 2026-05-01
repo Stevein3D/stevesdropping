@@ -111,9 +111,9 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
-      {menuOpen && (
-        <nav className="sm:hidden max-w-6xl mx-auto px-6 pt-4 pb-2 flex flex-col gap-4 text-sm text-warm-600 dark:text-warm-500 border-t border-cream-border dark:border-warm-700 mt-4">
+      {/* Mobile dropdown — absolute so it overlays content below */}
+      <div className={`sm:hidden absolute left-0 right-0 bg-cream dark:bg-warm-800 border-b-2 border-steve transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${menuOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-1 pointer-events-none'}`}>
+        <nav className="max-w-6xl mx-auto px-6 pt-4 pb-4 flex flex-col gap-4 text-sm text-warm-600 dark:text-warm-500">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
@@ -125,7 +125,7 @@ export function Header() {
             </Link>
           ))}
         </nav>
-      )}
+      </div>
     </header>
   )
 }

@@ -8,6 +8,7 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 const TYPE_LABEL: Record<HistoryEvent['type'], string> = {
   born:     'Born',
@@ -111,46 +112,61 @@ export function SteveOnADate() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3 mb-5">
+      <p className="text-xs text-warm-600 dark:text-warm-500 mb-3">
+        * Year is optional
+      </p>
+
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2 mb-5">
         {/* Month */}
         <div className="relative">
           <select
             value={month}
-            onChange={e => setMonth(e.target.value)}
+            onChange={e => {
+              const m = e.target.value
+              setMonth(m)
+              if (day && m && parseInt(day) > DAYS_IN_MONTH[parseInt(m) - 1]) setDay('')
+            }}
             required
-            className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-4 pr-9 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
+            className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-3 pr-8 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
           >
             <option value="">Month</option>
             {MONTHS.map((m, i) => (
               <option key={m} value={String(i + 1)}>{m}</option>
             ))}
           </select>
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
 
         {/* Day */}
-        <input
-          type="number"
-          min={1}
-          max={31}
-          value={day}
-          onChange={e => setDay(e.target.value)}
-          placeholder="Day"
-          required
-          className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-4 py-2 text-sm text-warm-900 dark:text-warm-200 w-24 focus:outline-none focus:border-steve"
-        />
+        <div className="relative">
+          <select
+            value={day}
+            onChange={e => setDay(e.target.value)}
+            required
+            disabled={!month}
+            className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-3 pr-8 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve disabled:opacity-40"
+          >
+            <option value="">Day</option>
+            {month && Array.from({ length: DAYS_IN_MONTH[parseInt(month) - 1] }, (_, i) => (
+              <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+            ))}
+          </select>
+          <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
 
-        {/* Year (optional) */}
+        {/* Year */}
         <input
           type="number"
           min={1888}
           max={new Date().getFullYear()}
           value={year}
           onChange={e => setYear(e.target.value)}
-          placeholder="Year (optional)"
-          className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-4 py-2 text-sm text-warm-900 dark:text-warm-200 w-36 focus:outline-none focus:border-steve"
+          placeholder="Year *"
+          className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg px-3 py-2 text-sm text-warm-900 dark:text-warm-200 w-20 focus:outline-none focus:border-steve"
         />
 
         <button

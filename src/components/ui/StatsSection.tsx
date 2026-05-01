@@ -97,7 +97,7 @@ export function StatsSection({
       </div>
       <p className="text-sm text-warm-600 dark:text-warm-500 mt-4 leading-relaxed">
         All adding up to{' '}
-        <span className="text-steve font-semibold">{castings.toLocaleString()}</span>
+        <span className="font-serif text-3xl font-bold text-steve">{castings.toLocaleString()}</span>
         {' '}documented appearances of Steves across film, TV, and beyond.
       </p>
     </div>
