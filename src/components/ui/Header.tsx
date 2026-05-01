@@ -70,8 +70,8 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-steve px-6 py-4 bg-cream dark:bg-warm-800">
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-50 border-b-2 border-steve py-4 bg-cream dark:bg-warm-800">
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         <Link href="/" className="font-serif text-2xl font-black text-steve tracking-tight">
           Stevesdropping
         </Link>
@@ -113,7 +113,7 @@ export function Header() {
 
       {/* Mobile dropdown */}
       {menuOpen && (
-        <nav className="sm:hidden max-w-5xl mx-auto pt-4 pb-2 flex flex-col gap-4 text-sm text-warm-600 dark:text-warm-500 border-t border-cream-border dark:border-warm-700 mt-4">
+        <nav className="sm:hidden max-w-6xl mx-auto px-6 pt-4 pb-2 flex flex-col gap-4 text-sm text-warm-600 dark:text-warm-500 border-t border-cream-border dark:border-warm-700 mt-4">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}

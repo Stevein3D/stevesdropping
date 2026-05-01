@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { EpisodeList } from '@/components/ui/EpisodeList'
 import { LightboxImage } from '@/components/ui/LightboxImage'
+import { BackButton } from '@/components/ui/BackButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,9 +87,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
 
   return (
     <div className="space-y-10 max-w-3xl">
-      <Link href="/people" className="text-sm text-warm-500 hover:text-steve transition-colors">
-        ← People
-      </Link>
+      <BackButton />
 
       {/* Header */}
       <div className="flex gap-6">

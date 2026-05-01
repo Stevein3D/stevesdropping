@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { LightboxImage } from '@/components/ui/LightboxImage'
 import { EpisodeList } from '@/components/ui/EpisodeList'
+import { BackButton } from '@/components/ui/BackButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,9 +83,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
 
   return (
     <div className="space-y-10 max-w-3xl">
-      <Link href="/characters" className="text-sm text-warm-500 hover:text-steve transition-colors">
-        ← Characters
-      </Link>
+      <BackButton />
 
       {/* Header */}
       <div className="border-b border-cream-border dark:border-warm-700 pb-6 flex gap-6">

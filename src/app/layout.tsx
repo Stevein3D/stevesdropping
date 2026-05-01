@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${playfair.variable} ${dmSans.variable} font-sans antialiased bg-cream text-warm-900 dark:bg-warm-800 dark:text-warm-200 min-h-screen flex flex-col`}>
         <Header />
-        <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
           {children}
         </main>
         <BackToTopButton />

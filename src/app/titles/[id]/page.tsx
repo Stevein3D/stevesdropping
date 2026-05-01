@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { TitleBadge } from '@/components/ui/TitleBadge'
+import { BackButton } from '@/components/ui/BackButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,9 +39,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
 
   return (
     <div className="space-y-10 max-w-3xl">
-      <Link href="/titles" className="text-sm text-warm-500 hover:text-steve transition-colors">
-        ← Titles
-      </Link>
+      <BackButton />
 
       {/* Header */}
       <div className="border-b border-cream-border dark:border-warm-700 pb-6 flex gap-6">
