@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Characters — Stevesdropping' }
 
-const PAGE_SIZE = 48
+const PAGE_SIZE = 45
 
 export default async function CharactersPage({
   searchParams,
@@ -50,7 +50,7 @@ export default async function CharactersPage({
       </div>
       <SearchInput placeholder="Search characters…" paramName="search" />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {characters.map((character) => (
           <Link
             key={character.id}

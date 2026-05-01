@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'People — Stevesdropping' }
 
-const PAGE_SIZE = 48
+const PAGE_SIZE = 45
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -96,7 +96,7 @@ export default async function PeoplePage({
       </form>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {people.map((person) => (
           <Link
             key={person.id}
