@@ -96,9 +96,9 @@ export function StatsSection({
         <StatItem label="Titles"     value={titles}     href="/titles"     animate={animate} delay={200} />
       </div>
       <p className="text-sm text-warm-600 dark:text-warm-500 mt-4 leading-relaxed">
-        All adding up to{' '}
+        That's a lot of Steves!{' '}
         <span className="font-serif text-3xl font-bold text-steve">{castings.toLocaleString()}</span>
-        {' '}documented appearances of Steves across film, TV, and beyond.
+        {' '}documented appearances and counting.
       </p>
     </div>
   )

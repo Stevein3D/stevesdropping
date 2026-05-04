@@ -4,7 +4,8 @@ import { ComingUp } from '@/components/ui/ComingUp'
 import { SteveOnADate } from '@/components/ui/SteveOnADate'
 import { MarqueeCarousel } from '@/components/ui/MarqueeCarousel'
 import { StatsSection } from '@/components/ui/StatsSection'
-import Link from 'next/link'
+import { BrowseTile } from '@/components/ui/BrowseTile'
+import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
 export const dynamic = 'force-dynamic'
 
@@ -294,22 +295,11 @@ export default async function HomePage() {
       <SteveOnADate />
 
       {/* Browse cards */}
-      <section className="grid md:grid-cols-3 gap-4">
-        {[
-          { href: '/people',     heading: 'Browse People',     body: 'Actors and notable figures named Steve or Steven' },
-          { href: '/characters', heading: 'Browse Characters', body: 'Fictional characters with the Steve name' },
-          { href: '/titles',     heading: 'Browse Titles',     body: 'Films, TV shows, and more featuring Steves' },
-        ].map(({ href, heading, body }) => (
-          <Link
-            key={href}
-            href={href}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-6 hover:border-steve dark:hover:border-warm-200 transition-colors"
-          >
-            <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 mb-1">{heading}</h2>
-            <p className="text-sm text-warm-600 dark:text-warm-500">{body}</p>
-          </Link>
-        ))}
-      </section>
+      <FadeInGrid className="grid md:grid-cols-3 gap-4">
+        <BrowseTile href="/people"     heading="Browse People"     body="Notable figures named Steve, and actors who play them" images={carouselPeopleItems.slice(0, 6)}     index={0} />
+        <BrowseTile href="/characters" heading="Browse Characters" body="Fictional characters with the Steve name"               images={carouselCharacterItems.slice(0, 6)} index={1} />
+        <BrowseTile href="/titles"     heading="Browse Titles"     body="Films, TV shows, and more featuring Steves"             images={carouselTitleItems.slice(0, 6)}     index={2} />
+      </FadeInGrid>
     </div>
   )
 }
