@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
+import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,7 +51,7 @@ export default async function CharactersPage({
       </div>
       <SearchInput placeholder="Search characters…" paramName="search" />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <FadeInGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {characters.map((character) => (
           <Link
             key={character.id}
@@ -96,7 +97,7 @@ export default async function CharactersPage({
             </div>
           </Link>
         ))}
-      </div>
+      </FadeInGrid>
 
       <Pagination page={page} totalPages={totalPages} basePath="/characters" />
     </div>

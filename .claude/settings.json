@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(node -e ':*)",
-      "Bash(xargs perl *)"
+      "Bash(xargs perl *)",
+      "Bash(ls .env*)"
     ]
   }
 }

@@ -19,3 +19,9 @@
 .animate-marquee-right {
   animation: marquee-right linear infinite;
 }
+
+/* Fade-in grid — tiles start hidden at CSS parse time (before JS) */
+[data-fade-grid] > * {
+  opacity: 0;
+  transform: translateY(20px);
+}
