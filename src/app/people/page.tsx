@@ -6,7 +6,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 export const metadata = { title: 'People — Stevesdropping' }
 

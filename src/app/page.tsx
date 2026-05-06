@@ -7,7 +7,7 @@ import { StatsSection } from '@/components/ui/StatsSection'
 import { BrowseTile } from '@/components/ui/BrowseTile'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 

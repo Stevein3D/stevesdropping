@@ -2,23 +2,16 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { cache } from 'react'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { EpisodeList } from '@/components/ui/EpisodeList'
 import { LightboxImage } from '@/components/ui/LightboxImage'
 import { BackButton } from '@/components/ui/BackButton'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 86400
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const person = await prisma.person.findUnique({ where: { id: parseInt(params.id) } })
-  return { title: person ? `${person.name} — Stevesdropping` : 'Not Found' }
-}
-
-export default async function PersonPage({ params }: { params: { id: string } }) {
-  const id = parseInt(params.id)
-  if (isNaN(id)) notFound()
-
-  const person = await prisma.person.findUnique({
+const getPerson = cache(async (id: number) =>
+  prisma.person.findUnique({
     where: { id },
     include: {
       castings: {
@@ -26,6 +19,18 @@ export default async function PersonPage({ params }: { params: { id: string } })
       },
     },
   })
+)
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const person = await getPerson(parseInt(params.id))
+  return { title: person ? `${person.name} — Stevesdropping` : 'Not Found' }
+}
+
+export default async function PersonPage({ params }: { params: { id: string } }) {
+  const id = parseInt(params.id)
+  if (isNaN(id)) notFound()
+
+  const person = await getPerson(id)
 
   if (!person) notFound()
 

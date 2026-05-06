@@ -2,23 +2,16 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { cache } from 'react'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { LightboxImage } from '@/components/ui/LightboxImage'
 import { EpisodeList } from '@/components/ui/EpisodeList'
 import { BackButton } from '@/components/ui/BackButton'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 86400
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const character = await prisma.character.findUnique({ where: { id: parseInt(params.id) } })
-  return { title: character ? `${character.name} — Stevesdropping` : 'Not Found' }
-}
-
-export default async function CharacterPage({ params }: { params: { id: string } }) {
-  const id = parseInt(params.id)
-  if (isNaN(id)) notFound()
-
-  const character = await prisma.character.findUnique({
+const getCharacter = cache(async (id: number) =>
+  prisma.character.findUnique({
     where: { id },
     include: {
       castings: {
@@ -26,6 +19,18 @@ export default async function CharacterPage({ params }: { params: { id: string }
       },
     },
   })
+)
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const character = await getCharacter(parseInt(params.id))
+  return { title: character ? `${character.name} — Stevesdropping` : 'Not Found' }
+}
+
+export default async function CharacterPage({ params }: { params: { id: string } }) {
+  const id = parseInt(params.id)
+  if (isNaN(id)) notFound()
+
+  const character = await getCharacter(id)
 
   if (!character) notFound()
 

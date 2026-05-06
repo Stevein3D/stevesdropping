@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { imagekit } from '@/lib/imagekit'
 
@@ -16,16 +17,35 @@ export async function POST(request: NextRequest) {
   switch (entity) {
     case 'person':
       await prisma.person.update({ where: { id }, data: { imageUrl: url } })
+      revalidatePath(`/people/${id}`)
+      revalidatePath('/people')
+      revalidatePath('/')
       break
     case 'character':
       await prisma.character.update({ where: { id }, data: { imageUrl: url } })
+      revalidatePath(`/characters/${id}`)
+      revalidatePath('/characters')
+      revalidatePath('/')
       break
     case 'title':
       await prisma.title.update({ where: { id }, data: { imageUrl: url } })
+      revalidatePath(`/titles/${id}`)
+      revalidatePath('/titles')
+      revalidatePath('/')
       break
-    case 'casting':
+    case 'casting': {
       await prisma.casting.update({ where: { id }, data: { imageUrl: url } })
+      const casting = await prisma.casting.findUnique({
+        where: { id },
+        select: { personId: true, titleId: true, characterId: true },
+      })
+      if (casting) {
+        revalidatePath(`/people/${casting.personId}`)
+        revalidatePath(`/titles/${casting.titleId}`)
+        revalidatePath(`/characters/${casting.characterId}`)
+      }
       break
+    }
     default:
       return NextResponse.json({ error: 'Unknown entity type' }, { status: 400 })
   }

@@ -2,21 +2,14 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { cache } from 'react'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { BackButton } from '@/components/ui/BackButton'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 86400
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const title = await prisma.title.findUnique({ where: { id: parseInt(params.id) } })
-  return { title: title ? `${title.name} — Stevesdropping` : 'Not Found' }
-}
-
-export default async function TitlePage({ params }: { params: { id: string } }) {
-  const id = parseInt(params.id)
-  if (isNaN(id)) notFound()
-
-  const title = await prisma.title.findUnique({
+const getTitle = cache(async (id: number) =>
+  prisma.title.findUnique({
     where: { id },
     include: {
       castings: {
@@ -32,6 +25,18 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       },
     },
   })
+)
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const title = await getTitle(parseInt(params.id))
+  return { title: title ? `${title.name} — Stevesdropping` : 'Not Found' }
+}
+
+export default async function TitlePage({ params }: { params: { id: string } }) {
+  const id = parseInt(params.id)
+  if (isNaN(id)) notFound()
+
+  const title = await getTitle(id)
 
   if (!title) notFound()
 

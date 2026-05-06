@@ -1,6 +1,6 @@
 'use client'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { useRef } from 'react'
+import { useRef, useTransition } from 'react'
 
 type Props = {
   placeholder?: string
@@ -12,6 +12,7 @@ export function SearchInput({ placeholder = 'Search…', paramName = 'search' }:
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const [, startTransition] = useTransition()
 
   const defaultValue = searchParams.get(paramName) ?? ''
 
@@ -27,8 +28,10 @@ export function SearchInput({ placeholder = 'Search…', paramName = 'search' }:
       }
       // Reset to page 1 on new search
       params.delete('page')
-      router.replace(`${pathname}?${params.toString()}`)
-    }, 300)
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`)
+      })
+    }, 500)
   }
 
   return (

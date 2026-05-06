@@ -7,7 +7,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 export const metadata = { title: 'Titles — Stevesdropping' }
 
