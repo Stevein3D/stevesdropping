@@ -40,7 +40,42 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
 
   if (!title) notFound()
 
-  const filmCastings = title.castings.filter((c) => !c.episodeId)
+  const endYear = title.endDate ? title.endDate.getUTCFullYear() : null
+  const yearRange = title.year != null
+    ? endYear != null ? `${title.year} - ${endYear}` : String(title.year)
+    : null
+
+  // Build unique person+character pairs from title-level AND episode castings.
+  // Prefer title-level castings (they may have images/notes); fill in episode-only pairs after.
+  type CastingDisplay = {
+    id: number
+    personId: number
+    characterId: number
+    imageUrl: string | null
+    notes: string | null
+    person: { name: string; imageUrl: string | null }
+    character: { name: string }
+  }
+  const seenPairs = new Set<string>()
+  const allAppearances: CastingDisplay[] = []
+
+  for (const c of title.castings) {
+    if (c.episodeId) continue
+    const key = `${c.personId}|${c.characterId}`
+    if (!seenPairs.has(key)) {
+      seenPairs.add(key)
+      allAppearances.push(c)
+    }
+  }
+  for (const ep of title.episodes) {
+    for (const c of ep.castings) {
+      const key = `${c.personId}|${c.characterId}`
+      if (!seenPairs.has(key)) {
+        seenPairs.add(key)
+        allAppearances.push(c)
+      }
+    }
+  }
 
   return (
     <div className="space-y-10 max-w-3xl">
@@ -65,7 +100,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
             <TitleBadge type={title.titleType} />
           </div>
           <p className="text-sm text-warm-600 dark:text-warm-500">
-            {[title.year, title.genre, title.runtime ? `${title.runtime} min` : null]
+            {[yearRange, title.genre, title.runtime ? `${title.runtime} min` : null]
               .filter(Boolean)
               .join(' · ')}
           </p>
@@ -76,13 +111,13 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       </div>
 
       {/* Film-level castings */}
-      {filmCastings.length > 0 && (
+      {allAppearances.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
             <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Steve Appearances</h2>
           </div>
           <div className="space-y-2">
-            {filmCastings.map((c) => (
+            {allAppearances.map((c) => (
               <div
                 key={c.id}
                 className="flex items-center gap-3 bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg px-4 py-3"
@@ -197,7 +232,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
         </section>
       )}
 
-      {filmCastings.length === 0 && title.episodes.length === 0 && (
+      {allAppearances.length === 0 && title.episodes.length === 0 && (
         <p className="text-warm-600 dark:text-warm-500 text-sm">No Steve castings recorded yet.</p>
       )}
     </div>

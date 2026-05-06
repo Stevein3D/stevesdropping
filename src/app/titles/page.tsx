@@ -7,6 +7,47 @@ import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 
+async function getCastingSummaries(titleIds: number[]): Promise<Map<number, string[]>> {
+  if (titleIds.length === 0) return new Map()
+
+  const joined = Prisma.join(titleIds)
+  const joined2 = Prisma.join(titleIds)
+
+  const rows = await prisma.$queryRaw<{
+    title_id: number
+    person_name: string
+    character_name: string
+  }[]>`
+    SELECT c."titleId" AS title_id, p.name AS person_name, ch.name AS character_name
+    FROM castings c
+    JOIN persons p      ON p.id = c."personId"
+    JOIN characters ch  ON ch.id = c."characterId"
+    WHERE c."titleId" IN (${joined}) AND c."episodeId" IS NULL
+
+    UNION
+
+    SELECT e."titleId" AS title_id, p.name AS person_name, ch.name AS character_name
+    FROM castings c
+    JOIN episodes e     ON e.id = c."episodeId"
+    JOIN persons p      ON p.id = c."personId"
+    JOIN characters ch  ON ch.id = c."characterId"
+    WHERE e."titleId" IN (${joined2})
+  `
+
+  const map = new Map<number, Map<string, string>>()
+  for (const row of rows) {
+    const id = Number(row.title_id)
+    if (!map.has(id)) map.set(id, new Map())
+    const pairs = map.get(id)!
+    const key = `${row.person_name}|${row.character_name}`
+    if (!pairs.has(key)) pairs.set(key, `${row.person_name} as ${row.character_name}`)
+  }
+
+  return new Map(
+    Array.from(map.entries()).map(([id, pairs]) => [id, Array.from(pairs.values())])
+  )
+}
+
 export const revalidate = 60
 
 export const metadata = { title: 'Titles — Stevesdropping' }
@@ -113,15 +154,10 @@ export default async function TitlesPage({
     id: true,
     name: true,
     year: true,
+    endDate: true,
     imageUrl: true,
     updatedAt: true,
     titleType: true,
-    castings: {
-      select: {
-        character: { select: { name: true } },
-        person:    { select: { name: true } },
-      },
-    },
     episodes: episodeSelect,
   }
 
@@ -141,6 +177,8 @@ export default async function TitlesPage({
           take: PAGE_SIZE,
         }),
   ])
+
+  const castingSummaries = await getCastingSummaries(titles.map(t => t.id))
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -194,16 +232,7 @@ export default async function TitlesPage({
       {/* TV Guide list */}
       <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
         {titles.map((title) => {
-          const seen = new Set<string>()
-          const uniquePairs: string[] = []
-          for (const c of title.castings) {
-            const key = `${c.person.name}|${c.character.name}`
-            if (!seen.has(key)) {
-              seen.add(key)
-              uniquePairs.push(`${c.person.name} as ${c.character.name}`)
-            }
-          }
-          const castingSummary = uniquePairs.length > 0 ? uniquePairs.join(' • ') : null
+          const castingSummary = (castingSummaries.get(title.id) ?? []).join(' • ') || null
           const matchingEpisodes = title.episodes
 
           // Format the episode match indicator
@@ -224,7 +253,7 @@ export default async function TitlesPage({
             <Link
               key={title.id}
               href={`/titles/${title.id}`}
-              className="grid grid-cols-[44px_52px_1fr_auto] items-center gap-3 px-3 py-2 border-b border-cream-border dark:border-warm-700 bg-cream dark:bg-warm-800 hover:bg-cream-card dark:hover:bg-warm-50/5 transition-colors last:border-b-0"
+              className="grid grid-cols-[44px_auto_1fr_auto] items-center gap-3 px-3 py-2 border-b border-cream-border dark:border-warm-700 bg-cream dark:bg-warm-800 hover:bg-cream-card dark:hover:bg-warm-50/5 transition-colors last:border-b-0"
             >
               {/* Poster thumbnail */}
               <div className="aspect-[2/3] relative rounded overflow-hidden bg-warm-100 dark:bg-warm-700 shrink-0">
@@ -239,7 +268,9 @@ export default async function TitlesPage({
                   />
                 )}
               </div>
-              <span className="font-serif text-sm font-bold text-warm-600 dark:text-warm-500 tabular-nums">{title.year}</span>
+              <span className="font-serif text-sm font-bold text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
+                {[title.year, title.endDate ? new Date(title.endDate).getUTCFullYear() : null].filter(Boolean).join(' - ')}
+              </span>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-warm-900 dark:text-warm-200 truncate">{title.name}</p>
                 {castingSummary && (

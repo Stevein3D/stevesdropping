@@ -40,6 +40,7 @@ type TitleRow = {
   'Title Sort':         string | null
   'Title Name':         string
   'Title Release Date': number | null  // Excel serial date
+  'Title End Date':     number | null  // Excel serial date
   'Genre':              string | null
   'Title Description':  string | null
   'Runtime (min)':      number | null
@@ -227,12 +228,14 @@ export async function POST(request: NextRequest) {
       const id = row['Title ID']
       try {
         const releaseDate = excelDate(row['Title Release Date'])
+        const endDate     = excelDate(row['Title End Date'])
         const rawRuntime  = row['Runtime (min)']
         const data = {
           name:        stripYear(row['Title Name']) ?? row['Title Name'],
           titleSort:   stripYear(row['Title Sort']),
           year:        releaseDate ? releaseDate.getUTCFullYear() : null,
           releaseDate,
+          endDate,
           titleType:   toTitleType(row['Title Type']),
           genre:       row['Genre'],
           description: row['Title Description'],

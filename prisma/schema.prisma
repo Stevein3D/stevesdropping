@@ -102,6 +102,7 @@ model Title {
   titleSort   String?
   year        Int?
   releaseDate DateTime?
+  endDate     DateTime?
   titleType   TitleType @default(film)
   genre       String?
   description String?
