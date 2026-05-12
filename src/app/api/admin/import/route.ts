@@ -76,15 +76,28 @@ function getSheet<T>(wb: xlsx.WorkBook, name: string): T[] {
   return xlsx.utils.sheet_to_json<T>(ws, { defval: null })
 }
 
-// Convert Excel serial date to JS Date (accounts for Excel's 1900 leap year bug)
-function excelDate(serial: number | null): Date | null {
-  if (!serial || typeof serial !== 'number') return null
-  const d = new Date((serial - 25569) * 86400 * 1000)
-  return isNaN(d.getTime()) ? null : d
+// Convert a cell to a JS Date. Accepts:
+//   - Excel serial numbers (accounts for the 1900 leap year bug)
+//   - JS Date objects (xlsx sometimes parses date-formatted cells this way)
+//   - String values typed by hand, e.g. "2018-05-12" or "5/12/2018"
+function excelDate(value: number | string | Date | null | undefined): Date | null {
+  if (value == null) return null
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value
+  if (typeof value === 'number') {
+    const d = new Date(Math.round((value - 25569) * 86400 * 1000))
+    return isNaN(d.getTime()) ? null : d
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const d = new Date(trimmed)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
 }
 
-function excelYear(serial: number | null): number | null {
-  const d = excelDate(serial)
+function excelYear(value: number | string | Date | null | undefined): number | null {
+  const d = excelDate(value)
   return d ? d.getUTCFullYear() : null
 }
 
@@ -230,10 +243,18 @@ export async function POST(request: NextRequest) {
         const releaseDate = excelDate(row['Title Release Date'])
         const endDate     = excelDate(row['Title End Date'])
         const rawRuntime  = row['Runtime (min)']
+        const exists = await prisma.title.findUnique({
+          where: { id },
+          select: { id: true, year: true },
+        })
+        // Preserve existing year when releaseDate is null but the record already has one.
+        const year = releaseDate
+          ? releaseDate.getUTCFullYear()
+          : (exists?.year ?? null)
         const data = {
           name:        stripYear(row['Title Name']) ?? row['Title Name'],
           titleSort:   stripYear(row['Title Sort']),
-          year:        releaseDate ? releaseDate.getUTCFullYear() : null,
+          year,
           releaseDate,
           endDate,
           titleType:   toTitleType(row['Title Type']),
@@ -242,7 +263,6 @@ export async function POST(request: NextRequest) {
           runtime:     (rawRuntime != null && !isNaN(Number(rawRuntime))) ? Number(rawRuntime) : null,
           titleScore:  row['Title Score'] ? Number(row['Title Score']) : null,
         }
-        const exists = await prisma.title.findUnique({ where: { id }, select: { id: true } })
         if (exists) {
           await prisma.title.update({ where: { id }, data })
         } else {
