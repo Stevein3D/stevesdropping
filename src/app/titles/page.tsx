@@ -6,6 +6,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
+import { Placeholder } from '@/components/ui/Placeholder'
 
 async function getCastingSummaries(titleIds: number[]): Promise<Map<number, string[]>> {
   if (titleIds.length === 0) return new Map()
@@ -268,7 +269,7 @@ export default async function TitlesPage({
             <Link
               key={title.id}
               href={`/titles/${title.id}`}
-              className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 transition-colors relative"
+              className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative"
             >
               {/* Poster */}
               <div className="aspect-[2/3] relative bg-warm-100 dark:bg-warm-700">
@@ -281,9 +282,7 @@ export default async function TitlesPage({
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-end p-2">
-                    <span className="text-[10px] text-warm-400">No poster</span>
-                  </div>
+                  <Placeholder name={title.name} variant="poster" className="absolute inset-0 rounded-none" />
                 )}
               </div>
               {/* Text — pb-10 reserves space for the absolute badge */}

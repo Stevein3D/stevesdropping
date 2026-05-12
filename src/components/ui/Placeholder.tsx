@@ -16,8 +16,23 @@ function tone(seed: string) {
   return TONE_GRADIENTS[Math.abs(h) % TONE_GRADIENTS.length]
 }
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).map((s) => s[0]).slice(0, 2).join('').toUpperCase()
+function cleanName(name: string): string {
+  // Strip parenthesized / bracketed nicknames so they don't pollute initials.
+  return name
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function firstAlpha(s: string): string {
+  return s.match(/[A-Za-z]/)?.[0] ?? ''
+}
+
+function initials(name: string): string {
+  const tokens = cleanName(name).split(/\s+/).filter(Boolean)
+  const letters = tokens.map(firstAlpha).filter(Boolean).slice(0, 4)
+  return letters.join('').toUpperCase() || '?'
 }
 
 type Variant = 'poster' | 'portrait' | 'avatar' | 'square'
@@ -39,6 +54,9 @@ export function Placeholder({
   className?: string
 }) {
   const v = VARIANT[variant]
+  const text = initials(name)
+  // Scale font down for 3+ initials so they still fit the container.
+  const scale = text.length <= 2 ? 1 : 2 / text.length
   return (
     <div
       className={`${v.aspect} ${v.radius} relative overflow-hidden flex items-center justify-center ${className}`}
@@ -47,9 +65,9 @@ export function Placeholder({
     >
       <span
         className="font-serif font-black italic text-cream relative z-10"
-        style={{ fontSize: `${v.fontCqw}cqw`, lineHeight: 1, letterSpacing: '-0.02em' }}
+        style={{ fontSize: `${v.fontCqw * scale}cqw`, lineHeight: 1, letterSpacing: '-0.02em' }}
       >
-        {initials(name)}
+        {text}
       </span>
       <span
         className="absolute inset-0 pointer-events-none"

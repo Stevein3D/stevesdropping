@@ -48,6 +48,14 @@ export function FadeInGrid({ children, className }: FadeInGridProps) {
             tile.style.transition = `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`
             tile.style.opacity = '1'
             tile.style.transform = 'translateY(0)'
+            const onEnd = (e: TransitionEvent) => {
+              if (e.propertyName !== 'transform' || e.target !== tile) return
+              tile.classList.add('fade-grid-done')
+              tile.style.transform = ''
+              tile.style.transition = ''
+              tile.removeEventListener('transitionend', onEnd)
+            }
+            tile.addEventListener('transitionend', onEnd)
             observer.unobserve(tile)
           })
         })

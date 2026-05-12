@@ -5,6 +5,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
+import { Placeholder } from '@/components/ui/Placeholder'
 
 export const revalidate = 60
 
@@ -169,7 +170,7 @@ export default async function CharactersPage({
           <Link
             key={character.id}
             href={`/characters/${character.id}`}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 transition-colors relative"
+            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative"
           >
             {/* Image */}
             <div className="aspect-[3/4] relative bg-warm-100 dark:bg-warm-700">
@@ -182,9 +183,7 @@ export default async function CharactersPage({
                   loading="lazy"
                 />
               ) : (
-                <div className="w-full h-full flex items-end p-2">
-                  <span className="text-[10px] text-warm-400">No image</span>
-                </div>
+                <Placeholder name={character.name} variant="portrait" className="absolute inset-0 rounded-none" />
               )}
             </div>
             {/* Text — pb-10 reserves space for the absolute badge */}

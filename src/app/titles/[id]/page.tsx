@@ -238,12 +238,12 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
   }
 
   return (
-    <div className="space-y-8 sm:space-y-10">
-      <BackButton />
+    <div className="space-y-8 sm:space-y-10 -mt-6 sm:-mt-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <BackButton />
 
       {/* Marquee Hero */}
       <article className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
@@ -408,11 +408,13 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                     as <span className="text-steve font-medium">{c.character.name}</span>
                   </div>
                   <div
-                    className="flex justify-between border-t border-dotted border-cream-border dark:border-warm-700 pt-1.5 text-[9px] uppercase text-warm-500 dark:text-warm-500 tabular-nums"
+                    className="flex justify-between border-t border-dotted border-cream-border dark:border-warm-700 pt-1.5 text-[9px] uppercase text-warm-600 dark:text-warm-500 tabular-nums"
                     style={{ letterSpacing: '0.1em' }}
                   >
                     <span>{yearText}</span>
-                    <span>{c.appearanceCount}×</span>
+                    <span title={`${c.appearanceCount} appearance${c.appearanceCount === 1 ? '' : 's'}`}>
+                      ({c.appearanceCount} EP)
+                    </span>
                   </div>
                 </Link>
               )
