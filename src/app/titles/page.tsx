@@ -2,10 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import Link from 'next/link'
 import { TitleBadge } from '@/components/ui/TitleBadge'
-import { LightboxImage } from '@/components/ui/LightboxImage'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
+import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
 async function getCastingSummaries(titleIds: number[]): Promise<Map<number, string[]>> {
   if (titleIds.length === 0) return new Map()
@@ -50,9 +50,22 @@ async function getCastingSummaries(titleIds: number[]): Promise<Map<number, stri
 
 export const revalidate = 60
 
-export const metadata = { title: 'Titles — Stevesdropping' }
+export const metadata = {
+  title: 'Titles',
+  description: 'Browse every film, TV series, and short cataloged on Stevesdropping — every project that has ever featured a Steve.',
+  openGraph: {
+    title: 'Titles — Stevesdropping',
+    description: 'Browse every film, TV series, and short cataloged on Stevesdropping.',
+    url: '/titles',
+  },
+  twitter: {
+    title: 'Titles — Stevesdropping',
+    description: 'Browse every film, TV series, and short cataloged on Stevesdropping.',
+  },
+  alternates: { canonical: '/titles' },
+}
 
-const PAGE_SIZE = 48
+const PAGE_SIZE = 45
 
 const TYPE_LABELS: Record<string, string> = {
   film:          'Film',
@@ -229,13 +242,15 @@ export default async function TitlesPage({
         )}
       </div>
 
-      {/* TV Guide list */}
-      <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
+      {/* Grid */}
+      <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {titles.map((title) => {
           const castingSummary = (castingSummaries.get(title.id) ?? []).join(' • ') || null
           const matchingEpisodes = title.episodes
+          const yearText = [title.year, title.endDate ? new Date(title.endDate).getUTCFullYear() : null]
+            .filter(Boolean)
+            .join(' - ')
 
-          // Format the episode match indicator
           let episodeIndicator: string | null = null
           if (search && matchingEpisodes.length > 0) {
             if (matchingEpisodes.length === 1) {
@@ -253,40 +268,51 @@ export default async function TitlesPage({
             <Link
               key={title.id}
               href={`/titles/${title.id}`}
-              className="grid grid-cols-[44px_auto_1fr_auto] items-center gap-3 px-3 py-2 border-b border-cream-border dark:border-warm-700 bg-cream dark:bg-warm-800 hover:bg-cream-card dark:hover:bg-warm-50/5 transition-colors last:border-b-0"
+              className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 transition-colors relative"
             >
-              {/* Poster thumbnail */}
-              <div className="aspect-[2/3] relative rounded overflow-hidden bg-warm-100 dark:bg-warm-700 shrink-0">
-                {title.imageUrl && (
-                  <LightboxImage
-                    src={`${title.imageUrl.split('?')[0]}?ik-t=${Math.floor(title.updatedAt.getTime() / 1000)}`}
-                    thumbnailSrc={`${title.imageUrl.split('?')[0]}?tr=w-88,q-80&ik-t=${Math.floor(title.updatedAt.getTime() / 1000)}`}
+              {/* Poster */}
+              <div className="aspect-[2/3] relative bg-warm-100 dark:bg-warm-700">
+                {title.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`${title.imageUrl.split('?')[0]}?tr=w-640,q-80&ik-t=${Math.floor(title.updatedAt.getTime() / 1000)}`}
                     alt={title.name}
-                    containerClassName="absolute inset-0"
-                    sizes="44px"
-                    scale={6}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
                   />
+                ) : (
+                  <div className="w-full h-full flex items-end p-2">
+                    <span className="text-[10px] text-warm-400">No poster</span>
+                  </div>
                 )}
               </div>
-              <span className="font-serif text-sm font-bold text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
-                {[title.year, title.endDate ? new Date(title.endDate).getUTCFullYear() : null].filter(Boolean).join(' - ')}
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-warm-900 dark:text-warm-200 truncate">{title.name}</p>
+              {/* Text — pb-10 reserves space for the absolute badge */}
+              <div className="p-3 pb-10 flex flex-col gap-0.5">
+                <h2 className="font-serif font-bold text-warm-900 dark:text-warm-200 leading-tight">
+                  {title.name}
+                </h2>
+                {yearText && (
+                  <p className="text-xs text-warm-600 dark:text-warm-500 tracking-wide tabular-nums">
+                    {yearText}
+                  </p>
+                )}
                 {castingSummary && (
-                  <p className="text-xs text-warm-600 dark:text-warm-500 mt-0.5 truncate">{castingSummary}</p>
+                  <p className="text-xs text-steve line-clamp-2">{castingSummary}</p>
                 )}
                 {episodeIndicator && (
-                  <p className="text-xs text-green-600 dark:text-green-500 mt-0.5 truncate">
-                    includes matching episode: {episodeIndicator}
+                  <p className="text-xs text-green-600 dark:text-green-500 line-clamp-2">
+                    matches: {episodeIndicator}
                   </p>
                 )}
               </div>
-              <TitleBadge type={title.titleType} />
+              {/* Badge — pinned to bottom-left of card */}
+              <span className="absolute bottom-3 left-3">
+                <TitleBadge type={title.titleType} />
+              </span>
             </Link>
           )
         })}
-      </div>
+      </FadeInGrid>
 
       {titles.length === 0 && (
         <p className="text-warm-600 dark:text-warm-500 text-center py-20">No titles found matching your search.</p>

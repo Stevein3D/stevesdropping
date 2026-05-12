@@ -25,3 +25,31 @@
   opacity: 0;
   transform: translateY(20px);
 }
+
+/* Theater-marquee bulb blink — every other bulb alternates between bright and dim. */
+@keyframes marquee-blink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(201, 74, 26, 0.85);
+  }
+  50% {
+    opacity: 0.22;
+    box-shadow: 0 0 1px rgba(201, 74, 26, 0.15);
+  }
+}
+
+.marquee-bulb-blink {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #c94a1a;
+  animation: marquee-blink 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-bulb-blink { animation: none; opacity: 1; }
+}
+
+/* Hide scrollbars for horizontally-scrolling tab strips. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

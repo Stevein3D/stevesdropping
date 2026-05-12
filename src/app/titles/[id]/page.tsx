@@ -3,10 +3,35 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cache } from 'react'
+import type { Metadata } from 'next'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { BackButton } from '@/components/ui/BackButton'
+import { Placeholder } from '@/components/ui/Placeholder'
+import { EpisodesBySeason } from '@/components/ui/EpisodesBySeason'
 
 export const revalidate = 86400
+
+const TV_TYPES = new Set(['tv_series', 'tv_miniseries', 'animated'])
+const SHOWING_TYPES = new Set(['film', 'tv_movie', 'short', 'documentary'])
+
+const TYPE_LABEL: Record<string, string> = {
+  film:          'MOTION PICTURE',
+  tv_series:     'TELEVISION SERIES',
+  tv_miniseries: 'LIMITED SERIES',
+  tv_movie:      'TV MOVIE',
+  animated:      'ANIMATED',
+  short:         'SHORT FILM',
+  documentary:   'DOCUMENTARY',
+  video:         'VIDEO',
+  other:         'ENTRY',
+}
+
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function formatDate(d: Date | null): string | null {
+  if (!d) return null
+  return `${MONTH_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`
+}
 
 const getTitle = cache(async (id: number) =>
   prisma.title.findUnique({
@@ -27,9 +52,43 @@ const getTitle = cache(async (id: number) =>
   })
 )
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
+function ogImage(imageUrl: string | null): string | undefined {
+  if (!imageUrl) return undefined
+  return `${imageUrl.split('?')[0]}?tr=w-1200,h-630,fo-auto,q-85`
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const title = await getTitle(parseInt(params.id))
-  return { title: title ? `${title.name} — Stevesdropping` : 'Not Found' }
+  if (!title) return { title: 'Not Found' }
+
+  const endYear = title.endDate ? title.endDate.getUTCFullYear() : null
+  const yearRange = title.year != null
+    ? endYear != null ? `${title.year}–${endYear}` : String(title.year)
+    : null
+
+  const description = title.description?.slice(0, 200) ||
+    `Steve appearances in ${title.name}${yearRange ? ` (${yearRange})` : ''}, cataloged on Stevesdropping.`
+
+  const image = ogImage(title.imageUrl)
+
+  return {
+    title: title.name,
+    description,
+    openGraph: {
+      title: `${title.name} — Stevesdropping`,
+      description,
+      type: 'website',
+      url: `/titles/${title.id}`,
+      images: image ? [image] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title.name} — Stevesdropping`,
+      description,
+      images: image ? [image] : undefined,
+    },
+    alternates: { canonical: `/titles/${title.id}` },
+  }
 }
 
 export default async function TitlePage({ params }: { params: { id: string } }) {
@@ -37,135 +96,327 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
   if (isNaN(id)) notFound()
 
   const title = await getTitle(id)
-
   if (!title) notFound()
 
-  const endYear = title.endDate ? title.endDate.getUTCFullYear() : null
-  const yearRange = title.year != null
-    ? endYear != null ? `${title.year} - ${endYear}` : String(title.year)
+  const titleStartYear = title.year ?? null
+  const titleEndYear = title.endDate ? title.endDate.getUTCFullYear() : null
+  const yearRange = titleStartYear != null
+    ? titleEndYear != null && titleEndYear !== titleStartYear
+      ? `${titleStartYear}–${titleEndYear}`
+      : String(titleStartYear)
     : null
 
-  // Build unique person+character pairs from title-level AND episode castings.
-  // Prefer title-level castings (they may have images/notes); fill in episode-only pairs after.
-  type CastingDisplay = {
-    id: number
+  // Group castings into unique person+character entries with appearance counts and year spans.
+  type CastEntry = {
+    key: string
     personId: number
     characterId: number
-    imageUrl: string | null
-    notes: string | null
     person: { name: string; imageUrl: string | null }
     character: { name: string }
+    castingImageUrl: string | null
+    appearanceCount: number
+    yearStart: number | null
+    yearEnd: number | null
   }
-  const seenPairs = new Set<string>()
-  const allAppearances: CastingDisplay[] = []
+  const groups = new Map<string, CastEntry>()
 
   for (const c of title.castings) {
-    if (c.episodeId) continue
+    if (c.episodeId !== null) continue
     const key = `${c.personId}|${c.characterId}`
-    if (!seenPairs.has(key)) {
-      seenPairs.add(key)
-      allAppearances.push(c)
+    const existing = groups.get(key)
+    if (existing) {
+      existing.appearanceCount += 1
+      if (!existing.castingImageUrl && c.imageUrl) existing.castingImageUrl = c.imageUrl
+    } else {
+      groups.set(key, {
+        key,
+        personId: c.personId,
+        characterId: c.characterId,
+        person: c.person,
+        character: c.character,
+        castingImageUrl: c.imageUrl,
+        appearanceCount: 1,
+        yearStart: titleStartYear,
+        yearEnd: titleEndYear ?? titleStartYear,
+      })
     }
   }
   for (const ep of title.episodes) {
+    const epYear = ep.releaseDate ? ep.releaseDate.getUTCFullYear() : null
     for (const c of ep.castings) {
       const key = `${c.personId}|${c.characterId}`
-      if (!seenPairs.has(key)) {
-        seenPairs.add(key)
-        allAppearances.push(c)
+      const existing = groups.get(key)
+      if (existing) {
+        existing.appearanceCount += 1
+        if (!existing.castingImageUrl && c.imageUrl) existing.castingImageUrl = c.imageUrl
+        if (epYear != null) {
+          existing.yearStart = existing.yearStart == null ? epYear : Math.min(existing.yearStart, epYear)
+          existing.yearEnd   = existing.yearEnd   == null ? epYear : Math.max(existing.yearEnd,   epYear)
+        }
+      } else {
+        groups.set(key, {
+          key,
+          personId: c.personId,
+          characterId: c.characterId,
+          person: c.person,
+          character: c.character,
+          castingImageUrl: c.imageUrl,
+          appearanceCount: 1,
+          yearStart: epYear,
+          yearEnd: epYear,
+        })
       }
     }
   }
+  const cast = Array.from(groups.values())
+
+  // Marquee bar text
+  const status = TV_TYPES.has(title.titleType) ? 'ON AIR'
+    : SHOWING_TYPES.has(title.titleType) ? 'NOW SHOWING'
+    : 'FEATURED'
+  const typeLabelBig = TYPE_LABEL[title.titleType] ?? 'ENTRY'
+
+  // Kicker
+  let kicker = ''
+  if (TV_TYPES.has(title.titleType)) {
+    if (title.year != null) {
+      kicker = titleEndYear != null
+        ? `Originally broadcast · ${title.year}–${titleEndYear}`
+        : `Broadcasting since ${title.year}`
+    } else {
+      kicker = TYPE_LABEL[title.titleType]
+    }
+  } else if (SHOWING_TYPES.has(title.titleType)) {
+    const dateStr = formatDate(title.releaseDate) ?? (title.year != null ? String(title.year) : null)
+    kicker = dateStr ? `${typeLabelBig} · ${dateStr}` : typeLabelBig
+  } else {
+    kicker = title.year != null ? `${typeLabelBig} · ${title.year}` : typeLabelBig
+  }
+
+  // Stats — adaptive 4-cell strip
+  const seasonsCount = new Set(
+    title.episodes.map((e) => e.season).filter((s): s is number => s != null)
+  ).size
+
+  const distinctSteves = new Set(cast.map((c) => c.characterId)).size
+
+  type Stat = { value: string; label: string }
+  const stats: Stat[] = [{ value: String(distinctSteves), label: 'Steves' }]
+  if (title.episodes.length > 0) {
+    stats.push({ value: String(title.episodes.length), label: 'Episodes' })
+  } else if (title.runtime != null) {
+    stats.push({ value: String(title.runtime), label: 'Runtime · min' })
+  }
+  if (seasonsCount > 1) {
+    stats.push({ value: String(seasonsCount), label: 'Seasons' })
+  } else if (title.genre) {
+    stats.push({ value: title.genre.split(',')[0].trim(), label: 'Genre' })
+  }
+  const hasMultiYear = titleEndYear != null && titleStartYear != null && titleEndYear !== titleStartYear
+  if (hasMultiYear) {
+    stats.push({ value: `${titleStartYear}–${titleEndYear}`, label: 'Span' })
+  } else {
+    const released = formatDate(title.releaseDate) ?? (titleStartYear != null ? String(titleStartYear) : null)
+    if (released) stats.push({ value: released, label: 'Released' })
+  }
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': TV_TYPES.has(title.titleType) ? 'TVSeries' : 'Movie',
+    name: title.name,
+    description: title.description ?? undefined,
+    image: title.imageUrl ?? undefined,
+    url: `https://stevesdropping.com/titles/${title.id}`,
+    datePublished: title.releaseDate?.toISOString().slice(0, 10)
+      ?? (title.year ? `${title.year}-01-01` : undefined),
+    genre: title.genre ?? undefined,
+    actor: cast.map((c) => ({
+      '@type': 'Person',
+      name: c.person.name,
+      url: `https://stevesdropping.com/people/${c.personId}`,
+    })),
+  }
 
   return (
-    <div className="space-y-10 max-w-3xl">
+    <div className="space-y-8 sm:space-y-10">
       <BackButton />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
-      {/* Header */}
-      <div className="border-b border-cream-border dark:border-warm-700 pb-6 flex gap-6">
-        {title.imageUrl && (
-          <div className="w-28 shrink-0 aspect-[2/3] relative rounded-lg overflow-hidden">
-            <Image
-              src={title.imageUrl}
-              alt={title.name}
-              fill
-              className="object-cover"
-              sizes="112px"
-            />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-3 flex-wrap mb-2">
-            <h1 className="font-serif text-4xl font-black text-warm-900 dark:text-warm-200">{title.name}</h1>
-            <TitleBadge type={title.titleType} />
-          </div>
-          <p className="text-sm text-warm-600 dark:text-warm-500">
-            {[yearRange, title.genre, title.runtime ? `${title.runtime} min` : null]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-          {title.description && (
-            <p className="text-warm-600 dark:text-warm-500 mt-3 leading-relaxed">{title.description}</p>
-          )}
+      {/* Marquee Hero */}
+      <article className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg overflow-hidden">
+        {/* Top bar */}
+        <div
+          className="bg-steve text-cream flex items-center px-4 py-2 font-mono font-semibold uppercase text-[10px] sm:text-[11px]"
+          style={{ letterSpacing: '0.18em' }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span aria-hidden>◉</span>
+            <span>{status}</span>
+            <span className="opacity-70">·</span>
+            <span className="truncate">{typeLabelBig}</span>
+          </span>
         </div>
-      </div>
 
-      {/* Film-level castings */}
-      {allAppearances.length > 0 && (
+        {/* Body */}
+        <div className="p-5 sm:px-[30px] sm:pt-[26px] sm:pb-[30px] grid gap-5 sm:gap-7 sm:grid-cols-[200px_1fr]">
+          {/* Poster */}
+          <div className="w-32 sm:w-[200px]">
+            {title.imageUrl ? (
+              <div className="aspect-[2/3] relative rounded-md overflow-hidden">
+                <Image
+                  src={title.imageUrl}
+                  alt={title.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 128px, 200px"
+                  priority
+                />
+              </div>
+            ) : (
+              <Placeholder name={title.name} variant="poster" />
+            )}
+          </div>
+
+          {/* Right column */}
+          <div className="min-w-0">
+            {kicker && (
+              <p
+                className="text-steve uppercase font-semibold text-[11px]"
+                style={{ letterSpacing: '0.18em' }}
+              >
+                {kicker}
+              </p>
+            )}
+            <h1
+              className="font-serif font-black text-warm-900 dark:text-warm-200 mt-1.5"
+              style={{ fontSize: 'clamp(36px, 8vw, 60px)', lineHeight: 0.95, letterSpacing: '-0.02em' }}
+            >
+              {title.name}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-warm-600 dark:text-warm-500">
+              <TitleBadge type={title.titleType} />
+              {yearRange && <span className="tabular-nums">{yearRange}</span>}
+              {title.genre && (
+                <>
+                  <span className="text-warm-600" aria-hidden>·</span>
+                  <span>{title.genre}</span>
+                </>
+              )}
+              {title.runtime != null && (
+                <>
+                  <span className="text-warm-600" aria-hidden>·</span>
+                  <span>{title.runtime} min</span>
+                </>
+              )}
+            </div>
+            {title.description && (
+              <p className="text-[14px] text-warm-600 dark:text-warm-500 mt-3 leading-[1.55] max-w-[60ch]">
+                {title.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+      </article>
+
+      {/* Stat strip */}
+      {stats.length > 0 && (
+        <section className="border border-cream-border dark:border-warm-700 rounded-md bg-cream-card dark:bg-warm-50/5 grid grid-cols-2 sm:grid-cols-4">
+          {stats.map((s, i) => (
+            <div
+              key={i}
+              className={`p-3 sm:px-4 sm:py-[14px] ${
+                i % 2 === 1 ? 'border-l border-cream-subtle dark:border-warm-700' : ''
+              } ${i >= 2 ? 'border-t sm:border-t-0 sm:border-l border-cream-subtle dark:border-warm-700' : ''}`}
+            >
+              <div
+                className="font-serif font-black text-[22px] sm:text-[26px] text-steve leading-none truncate"
+                style={{ letterSpacing: '-0.01em' }}
+              >
+                {s.value}
+              </div>
+              <div
+                className="text-[10px] uppercase text-warm-600 dark:text-warm-500 mt-1.5 font-semibold"
+                style={{ letterSpacing: '0.15em' }}
+              >
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Cast grid */}
+      {cast.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
-            <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Steve Appearances</h2>
+            <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">The Steve Cast</h2>
+            <span className="text-xs text-warm-600 dark:text-warm-500">{cast.length} listed</span>
           </div>
-          <div className="space-y-2">
-            {allAppearances.map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center gap-3 bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg px-4 py-3"
-              >
-                {/* Person avatar */}
-                {c.person.imageUrl ? (
-                  <div className="w-9 h-9 rounded-full overflow-hidden relative shrink-0">
-                    <Image
-                      src={c.person.imageUrl}
-                      alt={c.person.name}
-                      fill
-                      className="object-cover"
-                      sizes="36px"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-warm-100 dark:bg-warm-700 shrink-0" />
-                )}
+          <div
+            className="grid gap-3.5"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
+          >
+            {cast.map((c) => {
+              const yearText = c.yearStart != null
+                ? c.yearEnd != null && c.yearEnd !== c.yearStart
+                  ? `${c.yearStart}–${c.yearEnd}`
+                  : String(c.yearStart)
+                : ''
+              return (
                 <Link
+                  key={c.key}
                   href={`/people/${c.personId}`}
-                  className="font-serif font-bold text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
+                  className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-md p-2.5 flex flex-col gap-2 hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition"
                 >
-                  {c.person.name}
-                </Link>
-                <span className="text-warm-600 dark:text-warm-500 text-sm">as</span>
-                <Link
-                  href={`/characters/${c.characterId}`}
-                  className="text-steve hover:text-steve-hover transition-colors text-sm font-medium"
-                >
-                  {c.character.name}
-                </Link>
-                {/* Casting image */}
-                {c.imageUrl && (
-                  <div className="ml-auto w-10 aspect-[3/4] relative rounded overflow-hidden shrink-0">
-                    <Image
-                      src={c.imageUrl}
-                      alt={`${c.person.name} as ${c.character.name}`}
-                      fill
-                      className="object-cover"
-                      sizes="40px"
-                    />
+                  <div
+                    className="bg-steve text-cream rounded-sm py-1 px-2 text-center text-[10px] font-semibold uppercase truncate"
+                    style={{ letterSpacing: '0.08em' }}
+                  >
+                    {c.character.name}
                   </div>
-                )}
-                {c.notes && !c.imageUrl && (
-                  <span className="text-xs text-warm-600 dark:text-warm-500 ml-auto">{c.notes}</span>
-                )}
-              </div>
-            ))}
+                  {c.castingImageUrl ? (
+                    <div className="aspect-[3/4] rounded-sm overflow-hidden relative">
+                      <Image
+                        src={c.castingImageUrl}
+                        alt={`${c.person.name} as ${c.character.name}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 45vw, 150px"
+                      />
+                    </div>
+                  ) : c.person.imageUrl ? (
+                    <div className="aspect-[3/4] rounded-sm overflow-hidden relative">
+                      <Image
+                        src={c.person.imageUrl}
+                        alt={c.person.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 45vw, 150px"
+                      />
+                    </div>
+                  ) : (
+                    <Placeholder name={c.person.name} variant="portrait" className="rounded-sm" />
+                  )}
+                  <div className="font-serif font-bold text-[14px] text-center text-warm-900 dark:text-warm-200 leading-tight">
+                    {c.person.name}
+                  </div>
+                  <div className="text-[11px] text-warm-500 dark:text-warm-500 text-center">
+                    as <span className="text-steve font-medium">{c.character.name}</span>
+                  </div>
+                  <div
+                    className="flex justify-between border-t border-dotted border-cream-border dark:border-warm-700 pt-1.5 text-[9px] uppercase text-warm-500 dark:text-warm-500 tabular-nums"
+                    style={{ letterSpacing: '0.1em' }}
+                  >
+                    <span>{yearText}</span>
+                    <span>{c.appearanceCount}×</span>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </section>
       )}
@@ -174,66 +425,33 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       {title.episodes.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
-            <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
-              Episodes with Steve Appearances
+            <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
+              Episodes with Steves
             </h2>
           </div>
-          <div className="space-y-2">
-            {title.episodes.map((ep) => (
-              <div
-                key={ep.id}
-                className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="font-serif text-xs font-bold text-warm-600 dark:text-warm-500 border border-cream-border dark:border-warm-700 rounded px-2 py-0.5 shrink-0 tabular-nums">
-                    S{ep.season}E{ep.episodeNumber}
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-warm-900 dark:text-warm-200">
-                      {ep.episodeTitle ?? 'Untitled Episode'}
-                    </p>
-                    {ep.description && (
-                      <p className="text-xs text-warm-600 dark:text-warm-500 mt-1">{ep.description}</p>
-                    )}
-                    {ep.castings.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-3 mt-2">
-                        {ep.castings.map((c) => (
-                          <span key={c.id} className="flex items-center gap-1.5 text-xs text-warm-600 dark:text-warm-500">
-                            {c.person.imageUrl && (
-                              <div className="w-5 h-5 rounded-full overflow-hidden relative shrink-0">
-                                <Image
-                                  src={c.person.imageUrl}
-                                  alt={c.person.name}
-                                  fill
-                                  className="object-cover"
-                                  sizes="20px"
-                                />
-                              </div>
-                            )}
-                            <Link href={`/people/${c.personId}`} className="text-steve font-medium hover:text-steve-hover transition-colors no-underline">
-                              {c.person.name}
-                            </Link>
-                            {' as '}
-                            <Link href={`/characters/${c.characterId}`} className="text-warm-600 dark:text-warm-500 hover:text-steve transition-colors no-underline">
-                              {c.character.name}
-                            </Link>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {ep.runtime && (
-                    <span className="text-xs text-warm-600 dark:text-warm-500 shrink-0">{ep.runtime} min</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <EpisodesBySeason
+            episodes={title.episodes.map((e) => ({
+              id: e.id,
+              season: e.season,
+              episodeNumber: e.episodeNumber,
+              episodeTitle: e.episodeTitle,
+              description: e.description,
+              releaseDate: e.releaseDate ? e.releaseDate.toISOString() : null,
+              runtime: e.runtime,
+              castings: e.castings.map((c) => ({
+                id: c.id,
+                personId: c.personId,
+                characterId: c.characterId,
+                person: { name: c.person.name, imageUrl: c.person.imageUrl },
+                character: { name: c.character.name },
+              })),
+            }))}
+          />
         </section>
       )}
 
-      {allAppearances.length === 0 && title.episodes.length === 0 && (
-        <p className="text-warm-600 dark:text-warm-500 text-sm">No Steve castings recorded yet.</p>
+      {cast.length === 0 && title.episodes.length === 0 && (
+        <p className="text-warm-600 dark:text-warm-500 text-sm">No Steve appearances recorded yet.</p>
       )}
     </div>
   )

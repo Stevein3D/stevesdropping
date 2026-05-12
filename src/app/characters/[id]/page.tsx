@@ -3,12 +3,20 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cache } from 'react'
-import { TitleBadge } from '@/components/ui/TitleBadge'
-import { LightboxImage } from '@/components/ui/LightboxImage'
-import { EpisodeList } from '@/components/ui/EpisodeList'
+import type { Metadata } from 'next'
 import { BackButton } from '@/components/ui/BackButton'
+import { Placeholder } from '@/components/ui/Placeholder'
+import { CastingRow, type CastingRowData } from '@/components/ui/CastingRow'
 
 export const revalidate = 86400
+
+const CHARACTER_TYPE_LABEL: Record<string, string> = {
+  protagonist: 'Protagonist',
+  supporting:  'Supporting',
+  antagonist:  'Antagonist',
+  cameo:       'Cameo',
+  other:       'Other',
+}
 
 const getCharacter = cache(async (id: number) =>
   prisma.character.findUnique({
@@ -21,9 +29,39 @@ const getCharacter = cache(async (id: number) =>
   })
 )
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
+function ogImage(imageUrl: string | null): string | undefined {
+  if (!imageUrl) return undefined
+  return `${imageUrl.split('?')[0]}?tr=w-1200,h-630,fo-auto,q-85`
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const character = await getCharacter(parseInt(params.id))
-  return { title: character ? `${character.name} — Stevesdropping` : 'Not Found' }
+  if (!character) return { title: 'Not Found' }
+
+  const actorCount = new Set(character.castings.map((c) => c.personId)).size
+  const description = character.description?.slice(0, 200) ||
+    `${character.name}: cataloged Steve character with ${actorCount} actor${actorCount === 1 ? '' : 's'} across film and television.`
+
+  const image = ogImage(character.imageUrl)
+
+  return {
+    title: character.name,
+    description,
+    openGraph: {
+      title: `${character.name} — Stevesdropping`,
+      description,
+      type: 'website',
+      url: `/characters/${character.id}`,
+      images: image ? [image] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${character.name} — Stevesdropping`,
+      description,
+      images: image ? [image] : undefined,
+    },
+    alternates: { canonical: `/characters/${character.id}` },
+  }
 }
 
 export default async function CharacterPage({ params }: { params: { id: string } }) {
@@ -31,160 +69,295 @@ export default async function CharacterPage({ params }: { params: { id: string }
   if (isNaN(id)) notFound()
 
   const character = await getCharacter(id)
-
   if (!character) notFound()
 
-  type EpisodeEntry = { castingId: number; season: number | null; episodeNumber: number | null; episodeTitle: string | null }
+  // Group castings by person → title.
+  type EpisodeEntry = {
+    castingId: number
+    season: number | null
+    episodeNumber: number | null
+    episodeTitle: string | null
+    description: string | null
+    releaseDate: string | null
+    runtime: number | null
+  }
   type TitleGroup = {
     titleId: number
     title: (typeof character.castings)[0]['title']
     castingImageUrl: string | null
+    hasFilmLevel: boolean
     episodes: EpisodeEntry[]
   }
+  type PersonGroup = {
+    personId: number
+    personName: string
+    personImageUrl: string | null
+    titles: Map<number, TitleGroup>
+  }
 
-  // Group by person → title
-  const personMap: Record<string, { personId: number; personImageUrl: string | null; titles: Record<number, TitleGroup> }> = {}
+  const personMap = new Map<number, PersonGroup>()
   for (const c of character.castings) {
-    const personName = c.person.name
-    if (!personMap[personName]) personMap[personName] = { personId: c.personId, personImageUrl: c.person.imageUrl, titles: {} }
-    if (!personMap[personName].titles[c.titleId]) {
-      personMap[personName].titles[c.titleId] = {
+    let pg = personMap.get(c.personId)
+    if (!pg) {
+      pg = {
+        personId: c.personId,
+        personName: c.person.name,
+        personImageUrl: c.person.imageUrl,
+        titles: new Map(),
+      }
+      personMap.set(c.personId, pg)
+    }
+    let tg = pg.titles.get(c.titleId)
+    if (!tg) {
+      tg = {
         titleId: c.titleId,
         title: c.title,
         castingImageUrl: c.imageUrl,
+        hasFilmLevel: false,
         episodes: [],
       }
+      pg.titles.set(c.titleId, tg)
     }
     if (c.episode) {
-      personMap[personName].titles[c.titleId].episodes.push({
+      tg.episodes.push({
         castingId: c.id,
         season: c.episode.season,
         episodeNumber: c.episode.episodeNumber,
         episodeTitle: c.episode.episodeTitle,
+        description: c.episode.description,
+        releaseDate: c.episode.releaseDate ? c.episode.releaseDate.toISOString() : null,
+        runtime: c.episode.runtime,
       })
+    } else {
+      tg.hasFilmLevel = true
     }
   }
 
-  // Sort titles earliest to most recent; sort episodes by season then episode number
-  const byPerson = Object.entries(personMap).map(([personName, { personId, personImageUrl, titles }]) => ({
-    personName,
-    personId,
-    personImageUrl,
-    titles: Object.values(titles)
-      .sort((a, b) => {
-        const aVal = a.title.releaseDate ? new Date(a.title.releaseDate).getTime() : (a.title.year ?? 0) * 1e6
-        const bVal = b.title.releaseDate ? new Date(b.title.releaseDate).getTime() : (b.title.year ?? 0) * 1e6
-        return aVal - bVal
-      })
-      .map((tg) => ({
-        ...tg,
-        episodes: [...tg.episodes].sort((a, b) =>
-          (a.season ?? 0) !== (b.season ?? 0)
-            ? (a.season ?? 0) - (b.season ?? 0)
-            : (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
-        ),
-      })),
-  }))
+  // Sort each person's titles by year asc; sort persons by first appearance year asc.
+  const persons = Array.from(personMap.values()).map((pg) => {
+    const titlesSorted = Array.from(pg.titles.values()).sort((a, b) => {
+      const aV = a.title.releaseDate ? a.title.releaseDate.getTime() : (a.title.year ?? 0) * 1e9
+      const bV = b.title.releaseDate ? b.title.releaseDate.getTime() : (b.title.year ?? 0) * 1e9
+      return aV - bV
+    })
+    return { ...pg, titlesSorted }
+  })
+  persons.sort((a, b) => {
+    const aY = a.titlesSorted[0]?.title.year ?? 9999
+    const bY = b.titlesSorted[0]?.title.year ?? 9999
+    return aY - bY
+  })
+
+  // Stats
+  const distinctTitles = new Set(character.castings.map((c) => c.titleId))
+  const distinctPersons = new Set(character.castings.map((c) => c.personId))
+
+  // Span across all titles
+  const allYears: number[] = []
+  for (const c of character.castings) {
+    if (c.title.year != null) allYears.push(c.title.year)
+    if (c.title.endDate) allYears.push(c.title.endDate.getUTCFullYear())
+  }
+  const spanText = allYears.length > 0
+    ? Math.min(...allYears) === Math.max(...allYears)
+      ? String(Math.min(...allYears))
+      : `${Math.min(...allYears)}–${Math.max(...allYears)}`
+    : null
+
+  // Chip count: appearances (episodes if any, otherwise 1 per feature title)
+  const chipCount = (pg: typeof persons[0]) => {
+    let n = 0
+    for (const tg of pg.titlesSorted) {
+      if (tg.episodes.length === 0) n += 1
+      else n += tg.episodes.length
+    }
+    return n
+  }
+
+  const kicker = (CHARACTER_TYPE_LABEL[character.characterType] ?? character.characterType).toUpperCase()
+
+  const truncatedDescription = character.description
+    ? character.description.length > 280 ? character.description.slice(0, 280).trim() + '…' : character.description
+    : null
 
   return (
-    <div className="space-y-10 max-w-3xl">
+    <div className="space-y-8 sm:space-y-10">
       <BackButton />
 
-      {/* Header */}
-      <div className="border-b border-cream-border dark:border-warm-700 pb-6 flex gap-6">
-        {character.imageUrl && (
-          <div className="w-32 shrink-0 aspect-[3/4] relative rounded-lg overflow-hidden">
-            <Image
-              src={character.imageUrl}
-              alt={character.name}
-              fill
-              className="object-cover"
-              sizes="128px"
-            />
+      {/* Banner */}
+      <article className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg p-5 sm:p-[22px]">
+        <div className="grid gap-5 sm:gap-6 grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr_auto] items-start sm:items-center">
+          {/* Image */}
+          <div className="w-[100px] sm:w-[120px]">
+            {character.imageUrl ? (
+              <div className="aspect-[3/4] rounded-md overflow-hidden relative">
+                <Image
+                  src={character.imageUrl}
+                  alt={character.name}
+                  fill
+                  className="object-cover"
+                  sizes="120px"
+                  priority
+                />
+              </div>
+            ) : (
+              <Placeholder name={character.name} variant="portrait" />
+            )}
           </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-3 flex-wrap mb-2">
-            <h1 className="font-serif text-4xl font-black text-warm-900 dark:text-warm-200">{character.name}</h1>
-            <span className="text-xs bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-2 py-0.5 rounded capitalize">
-              {character.characterType}
+
+          {/* Middle */}
+          <div className="min-w-0">
+            <p
+              className="text-steve uppercase font-semibold text-[11px]"
+              style={{ letterSpacing: '0.18em' }}
+            >
+              {kicker}
+            </p>
+            <h1
+              className="font-serif font-black text-warm-900 dark:text-warm-200 mt-1.5 mb-2"
+              style={{ fontSize: 'clamp(28px, 6.5vw, 44px)', lineHeight: 1, letterSpacing: '-0.02em' }}
+            >
+              {character.name}
+            </h1>
+            {truncatedDescription && (
+              <p className="text-[13px] text-warm-500 dark:text-warm-500 leading-[1.5] max-w-[60ch]">
+                {truncatedDescription}
+              </p>
+            )}
+          </div>
+
+          {/* Stats — horizontal in both modes; under content on mobile, right column on desktop */}
+          <div className="col-span-2 sm:col-span-1 flex gap-[18px] pt-3 sm:pt-0 border-t sm:border-t-0 border-cream-subtle dark:border-warm-700">
+            <Stat value={character.castings.length} label="Appearances" />
+            <Stat value={distinctPersons.size} label="Actors" />
+            <Stat value={distinctTitles.size} label="Titles" />
+          </div>
+        </div>
+      </article>
+
+      {/* Cast (actors who have played this character) */}
+      {persons.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-2">
+            <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
+              Cast
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {persons.map((pg) => (
+              <Link
+                key={pg.personId}
+                href={`/people/${pg.personId}`}
+                className="inline-flex items-center gap-1.5 bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-full pl-1 pr-3 py-[5px] text-[12px] hover:border-steve dark:hover:border-warm-200 transition-colors"
+              >
+                <span className="w-[22px] h-[22px] rounded-full overflow-hidden relative shrink-0 bg-warm-100 dark:bg-warm-700">
+                  {pg.personImageUrl ? (
+                    <Image
+                      src={pg.personImageUrl}
+                      alt={pg.personName}
+                      fill
+                      className="object-cover"
+                      sizes="22px"
+                    />
+                  ) : (
+                    <Placeholder name={pg.personName} variant="avatar" />
+                  )}
+                </span>
+                <span className="font-serif font-bold text-steve">{pg.personName}</span>
+                <span className="bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-1.5 py-px rounded-full text-[10px] font-mono">
+                  {chipCount(pg)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Filmography */}
+      {persons.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-2">
+            <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
+              Filmography
+            </h2>
+            <span className="text-xs text-warm-600 dark:text-warm-500">
+              {distinctTitles.size} title{distinctTitles.size === 1 ? '' : 's'} · {character.castings.length} appearance{character.castings.length === 1 ? '' : 's'}
+              {spanText ? ` · ${spanText}` : ''}
             </span>
           </div>
-          {character.description && (
-            <p className="text-warm-600 dark:text-warm-500 mt-3 leading-relaxed">{character.description}</p>
-          )}
-        </div>
-      </div>
 
-      {/* Actors */}
-      <section className="space-y-6">
-        <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
-          <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
-            Actors who played {character.name}
-          </h2>
-        </div>
-        {byPerson.map(({ personName, personId, personImageUrl, titles }) => (
-          <div key={personName} className="space-y-2">
-            <div className="flex items-center gap-3">
-              {personImageUrl && (
-                <div className="w-8 h-8 rounded-full overflow-hidden relative shrink-0">
-                  <LightboxImage
-                    src={personImageUrl}
-                    alt={personName}
-                    containerClassName="absolute inset-0"
-                    sizes="32px"
-                    scale={6}
-                  />
-                </div>
-              )}
-              <h3>
-                <Link
-                  href={`/people/${personId}`}
-                  className="font-serif font-bold text-steve hover:text-steve-hover transition-colors"
-                >
-                  {personName}
-                </Link>
-              </h3>
-            </div>
-            <div className="space-y-2 pl-4 border-l-2 border-cream-border dark:border-warm-700">
-              {titles.map((tg) => (
-                <div key={tg.titleId} className="flex items-start gap-3">
-                  {tg.castingImageUrl && (
-                    <div className="w-12 shrink-0 aspect-[3/4] relative rounded overflow-hidden">
-                      <LightboxImage
-                        src={tg.castingImageUrl}
-                        alt={`${personName} as ${character.name} in ${tg.title.name}`}
-                        containerClassName="absolute inset-0"
-                        sizes="48px"
-                        scale={6}
-                      />
-                    </div>
+          {persons.map((pg) => (
+            <div key={pg.personId} className="space-y-0">
+              {/* Actor heading */}
+              <div className="flex items-center gap-2.5 pt-2 pb-2">
+                <span className="w-[30px] h-[30px] rounded-full overflow-hidden relative shrink-0 bg-warm-100 dark:bg-warm-700">
+                  {pg.personImageUrl ? (
+                    <Image
+                      src={pg.personImageUrl}
+                      alt={pg.personName}
+                      fill
+                      className="object-cover"
+                      sizes="30px"
+                    />
+                  ) : (
+                    <Placeholder name={pg.personName} variant="avatar" />
                   )}
-                  <div className="flex items-start gap-3 flex-1">
-                    <span className="font-serif text-sm font-bold text-warm-600 dark:text-warm-500 w-10 shrink-0 tabular-nums">
-                      {tg.title.year}
-                    </span>
-                    <div>
-                      <Link
-                        href={`/titles/${tg.titleId}`}
-                        className="text-sm font-medium text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
-                      >
-                        {tg.title.name}
-                      </Link>
-                      <span className="inline-block ml-[8px]">
-                        <TitleBadge type={tg.title.titleType} />
-                      </span>
-                      {tg.episodes.length > 0 && (
-                        <EpisodeList episodes={tg.episodes} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                </span>
+                <Link
+                  href={`/people/${pg.personId}`}
+                  className="font-serif font-black text-[18px] text-steve hover:text-steve-hover transition-colors"
+                >
+                  {pg.personName}
+                </Link>
+              </div>
+
+              {/* Rows */}
+              <div>
+                {pg.titlesSorted.map((tg) => {
+                  const data: CastingRowData = {
+                    titleId: tg.titleId,
+                    title: {
+                      id: tg.title.id,
+                      name: tg.title.name,
+                      year: tg.title.year,
+                      description: tg.title.description,
+                      genre: tg.title.genre,
+                      titleType: tg.title.titleType,
+                    },
+                    castingImageUrl: tg.castingImageUrl,
+                    hasFilmLevel: tg.hasFilmLevel,
+                    episodes: tg.episodes,
+                  }
+                  return <CastingRow key={tg.titleId} data={data} />
+                })}
+              </div>
             </div>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
+
+      {persons.length === 0 && (
+        <p className="text-warm-500 dark:text-warm-500 text-sm">No castings recorded yet.</p>
+      )}
+    </div>
+  )
+}
+
+function Stat({ value, label }: { value: number; label: string }) {
+  return (
+    <div>
+      <div
+        className="font-serif font-black text-[26px] text-steve leading-none"
+        style={{ letterSpacing: '-0.01em' }}
+      >
+        {value}
+      </div>
+      <div
+        className="text-[9px] uppercase text-warm-600 dark:text-warm-500 mt-1 font-semibold"
+        style={{ letterSpacing: '0.18em' }}
+      >
+        {label}
+      </div>
     </div>
   )
 }

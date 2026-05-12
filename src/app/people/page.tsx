@@ -8,7 +8,20 @@ import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
 export const revalidate = 60
 
-export const metadata = { title: 'People — Stevesdropping' }
+export const metadata = {
+  title: 'People',
+  description: 'Every actor, comedian, musician, and notable figure named Steve — cataloged on Stevesdropping.',
+  openGraph: {
+    title: 'People — Stevesdropping',
+    description: 'Every actor, comedian, musician, and notable figure named Steve — cataloged on Stevesdropping.',
+    url: '/people',
+  },
+  twitter: {
+    title: 'People — Stevesdropping',
+    description: 'Every actor, comedian, musician, and notable figure named Steve — cataloged on Stevesdropping.',
+  },
+  alternates: { canonical: '/people' },
+}
 
 const PAGE_SIZE = 45
 

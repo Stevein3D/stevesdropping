@@ -17,15 +17,37 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
 })
 
+const SITE_NAME = 'Stevesdropping'
+const SITE_DESCRIPTION = 'A database cataloging every Steve and Steven across film, television, and beyond.'
+
 export const metadata: Metadata = {
-  title: 'Stevesdropping — All Steves, All the Time',
-  description: 'A database cataloging every Steve and Steven across film, television, and beyond.',
+  metadataBase: new URL('https://stevesdropping.com'),
+  title: {
+    default: 'Stevesdropping — All Steves, All the Time',
+    template: '%s — Stevesdropping',
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   icons: {
     icon: [
       { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
       { url: '/favicon.ico', sizes: '48x48' },
     ],
     apple: '/apple-icon.png',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    title: 'Stevesdropping — All Steves, All the Time',
+    description: SITE_DESCRIPTION,
+    url: 'https://stevesdropping.com',
+    images: ['/apple-icon.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Stevesdropping — All Steves, All the Time',
+    description: SITE_DESCRIPTION,
+    images: ['/apple-icon.png'],
   },
 }
 
