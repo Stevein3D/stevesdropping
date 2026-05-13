@@ -118,7 +118,7 @@ function EpisodeRow({ ep, index }: { ep: EpisodeForList; index: number }) {
               S{ep.season}
             </span>
           )}
-          <span className="font-serif font-black italic text-steve text-[22px] leading-none">{epNum}</span>
+          <span className="font-display italic text-steve text-[22px] leading-none">{epNum}</span>
         </div>
         {dateInfo && (
           <div

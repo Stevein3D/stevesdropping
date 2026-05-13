@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { PersonType, CharacterType, TitleType } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
+// Imports do many sequential upserts; bump from the 10s default. Capped to the
+// plan's actual max (Pro: 60s without config, up to 300s on request).
+export const maxDuration = 60
 
 // ─── Row types matching the XLSX sheet columns ──────────────────────────────
 

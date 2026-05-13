@@ -32,8 +32,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        serif: ['var(--font-playfair)', 'Georgia', 'serif'],
-        sans:  ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        serif:   ['var(--font-playfair)', 'Georgia', 'serif'],
+        sans:    ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-dm-serif-display)', 'Georgia', 'serif'],
       },
     },
   },

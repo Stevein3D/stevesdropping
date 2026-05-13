@@ -93,12 +93,12 @@ export function CastingRow({ data }: { data: CastingRowData }) {
         <div className="min-w-0">
           <Link
             href={`/titles/${tg.titleId}`}
-            className="font-serif font-bold text-[14px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
+            className="font-serif font-bold text-[15px] sm:text-[16px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
           >
             {tg.title.name}
           </Link>
           {subLine && (
-            <span className="block mt-px text-[11px] text-warm-600 dark:text-warm-500 font-sans font-normal leading-snug">
+            <span className="block mt-1 text-[13px] text-warm-600 dark:text-warm-500 font-sans font-normal leading-[1.45]">
               {subLine}
             </span>
           )}
@@ -160,7 +160,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
                           S{e.season}
                         </span>
                       )}
-                      <span className="font-serif font-black italic text-steve text-[22px] leading-none">{epNum}</span>
+                      <span className="font-display italic text-steve text-[22px] leading-none">{epNum}</span>
                     </div>
                     {dateInfo && (
                       <div

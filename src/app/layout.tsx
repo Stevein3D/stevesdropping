@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, DM_Sans } from 'next/font/google'
+import { Playfair_Display, DM_Sans, DM_Serif_Display } from 'next/font/google'
 import { Header } from '@/components/ui/Header'
 import './globals.css'
 import BackToTopButton from '@/components/ui/BackToTopButton'
@@ -15,6 +15,15 @@ const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-dm-sans',
+})
+
+// Used for prominent numerals (stat values, episode numbers). Only one weight (400)
+// is published, but the face itself reads as a bold display serif.
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-dm-serif-display',
 })
 
 const SITE_NAME = 'Stevesdropping'
@@ -57,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');})();` }} />
       </head>
-      <body className={`${playfair.variable} ${dmSans.variable} font-sans antialiased bg-cream text-warm-900 dark:bg-warm-800 dark:text-warm-200 min-h-screen flex flex-col`}>
+      <body className={`${playfair.variable} ${dmSans.variable} ${dmSerifDisplay.variable} font-sans antialiased bg-cream text-warm-900 dark:bg-warm-800 dark:text-warm-200 min-h-screen flex flex-col`}>
         <Header />
         <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
           {children}

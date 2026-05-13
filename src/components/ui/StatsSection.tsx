@@ -55,7 +55,7 @@ function StatItem({
 
   return (
     <Link href={href} className="group">
-      <div className="font-serif text-3xl font-bold text-steve leading-none group-hover:text-steve-hover transition-colors tabular-nums">
+      <div className="font-display text-3xl text-steve leading-none group-hover:text-steve-hover transition-colors tabular-nums">
         {count.toLocaleString()}
       </div>
       <div className="text-xs text-warm-600 dark:text-warm-500 tracking-widest uppercase mt-1">{label}</div>
@@ -97,7 +97,7 @@ export function StatsSection({
       </div>
       <p className="text-sm text-warm-600 dark:text-warm-500 mt-4 leading-relaxed">
         That's a lot of Steves!{' '}
-        <span className="font-serif text-3xl font-bold text-steve">{castings.toLocaleString()}</span>
+        <span className="font-display text-3xl text-steve">{castings.toLocaleString()}</span>
         {' '}documented appearances and counting.
       </p>
     </div>

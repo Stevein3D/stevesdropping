@@ -197,10 +197,13 @@ export default async function PersonPage({ params }: { params: { id: string } })
     jobTitle: person.personType,
   }
 
-  // Banner kicker: PERSON_TYPE · b. {birthYear}{birthplace ? ` · ${birthplace}` : ''}
+  // Banner kicker: PERSON_TYPE · b. {birthYear} – d. {deathYear} · {birthplace}
   const kickerParts: string[] = []
   kickerParts.push((PERSON_TYPE_LABEL[person.personType] ?? person.personType).toUpperCase())
-  if (person.birthYear) kickerParts.push(`b. ${person.birthYear}`)
+  const lifeDates: string[] = []
+  if (person.birthYear) lifeDates.push(`b. ${person.birthYear}`)
+  if (person.deathYear) lifeDates.push(`d. ${person.deathYear}`)
+  if (lifeDates.length > 0) kickerParts.push(lifeDates.join(' – '))
   if (person.birthplace) kickerParts.push(person.birthplace)
   const kicker = kickerParts.join(' · ')
 
@@ -381,7 +384,7 @@ function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div>
       <div
-        className="font-serif font-black text-[26px] text-steve leading-none"
+        className="font-display text-[26px] text-steve leading-none"
         style={{ letterSpacing: '-0.01em' }}
       >
         {value}

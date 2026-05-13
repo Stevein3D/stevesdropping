@@ -347,7 +347,7 @@ function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div>
       <div
-        className="font-serif font-black text-[26px] text-steve leading-none"
+        className="font-display text-[26px] text-steve leading-none"
         style={{ letterSpacing: '-0.01em' }}
       >
         {value}

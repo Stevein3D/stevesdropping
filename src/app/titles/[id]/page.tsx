@@ -333,7 +333,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
               } ${i >= 2 ? 'border-t sm:border-t-0 sm:border-l border-cream-subtle dark:border-warm-700' : ''}`}
             >
               <div
-                className="font-serif font-black text-[22px] sm:text-[26px] text-steve leading-none truncate"
+                className="font-display text-[22px] sm:text-[26px] text-steve leading-none truncate"
                 style={{ letterSpacing: '-0.01em' }}
               >
                 {s.value}

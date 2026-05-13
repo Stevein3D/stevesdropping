@@ -36,10 +36,25 @@ export default function ImportPage() {
 
     try {
       const res = await fetch('/api/admin/import', { method: 'POST', body: formData })
-      const data = await res.json()
+      // If the function was killed (timeout, OOM, edge error), the response body
+      // is usually an HTML error page — surface the status code instead of a
+      // generic "Network error".
+      const text = await res.text()
+      let data: Result
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = {
+          ok: false,
+          error: `Server returned ${res.status} ${res.statusText} (response was not JSON — likely a function timeout or platform error)`,
+        }
+      }
       setResult(data)
-    } catch {
-      setResult({ ok: false, error: 'Network error — upload failed' })
+    } catch (err) {
+      setResult({
+        ok: false,
+        error: err instanceof Error ? `Upload failed: ${err.message}` : 'Upload failed',
+      })
     }
 
     setLoading(false)
