@@ -6,6 +6,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
+import { LetterJumper } from '@/components/ui/LetterJumper'
 
 export const revalidate = 60
 
@@ -73,6 +74,58 @@ async function getNameSortedIds(
   return rows.map(r => Number(r.id))
 }
 
+// For each starting letter of the sort key (lastName), return the page number
+// that contains the first matching person. People with no lastName bucket under '#'.
+async function getLetterPageMap(
+  search: string,
+  type: string | undefined,
+  dir: 'ASC' | 'DESC',
+): Promise<Record<string, number>> {
+  const conditions: Prisma.Sql[] = []
+  if (search) conditions.push(Prisma.sql`name ILIKE ${'%' + search + '%'}`)
+  if (type)   conditions.push(Prisma.sql`"personType"::text = ${type}`)
+
+  const whereClause = conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+    : Prisma.empty
+
+  const direction = Prisma.raw(dir)
+
+  const rows = await prisma.$queryRaw<{ letter: string; first_row: number | bigint }[]>`
+    WITH ranked AS (
+      SELECT
+        id,
+        LOWER("lastName") AS sort_key,
+        LOWER("firstName") AS name_key
+      FROM persons
+      ${whereClause}
+    ),
+    numbered AS (
+      SELECT
+        sort_key,
+        ROW_NUMBER() OVER (ORDER BY sort_key ${direction} NULLS LAST, name_key ${direction}) AS rn
+      FROM ranked
+    )
+    SELECT
+      CASE
+        WHEN sort_key IS NULL THEN '#'
+        WHEN SUBSTRING(sort_key FROM 1 FOR 1) ~ '[a-z]'
+        THEN UPPER(SUBSTRING(sort_key FROM 1 FOR 1))
+        ELSE '#'
+      END AS letter,
+      MIN(rn) AS first_row
+    FROM numbered
+    GROUP BY letter
+  `
+
+  const map: Record<string, number> = {}
+  for (const row of rows) {
+    const page = Math.floor((Number(row.first_row) - 1) / PAGE_SIZE) + 1
+    map[row.letter] = page
+  }
+  return map
+}
+
 function getOrderBy(sort: string) {
   switch (sort) {
     case 'appearances': return { castings: { _count: 'desc' as const } }
@@ -98,13 +151,13 @@ export default async function PeoplePage({
 
   const isNameSort = sort === '' || sort === 'name_desc'
   const select = {
-    id: true, name: true, personType: true,
+    id: true, name: true, lastName: true, personType: true,
     birthDate: true, deathDate: true, birthYear: true, deathYear: true,
     imageUrl: true, updatedAt: true,
     _count: { select: { castings: true } },
   } as const
 
-  const [total, people] = await Promise.all([
+  const [total, people, letterPages] = await Promise.all([
     prisma.person.count({ where }),
     isNameSort
       ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
@@ -119,9 +172,25 @@ export default async function PeoplePage({
           skip: (page - 1) * PAGE_SIZE,
           take: PAGE_SIZE,
         }),
+    isNameSort
+      ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
+      : Promise.resolve({} as Record<string, number>),
   ])
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Tag the first tile of each letter group with an anchor id. People bucket
+  // by first letter of lastName; missing lastName falls into '#'.
+  const firstOfLetter = new Map<number, string>()
+  if (isNameSort) {
+    let prev = ''
+    for (const p of people) {
+      const c = (p.lastName ?? '').trim()[0]?.toLowerCase() ?? ''
+      const letter = /[a-z]/.test(c) ? c.toUpperCase() : '#'
+      if (letter !== prev) firstOfLetter.set(p.id, letter)
+      prev = letter
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -162,6 +231,9 @@ export default async function PeoplePage({
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
+        {isNameSort && Object.keys(letterPages).length > 0 && (
+          <LetterJumper letterPages={letterPages} basePath="/people" />
+        )}
         {(search || type || sort) && (
           <Link
             href="/people"
@@ -172,13 +244,18 @@ export default async function PeoplePage({
         )}
       </div>
 
+      <Pagination page={page} totalPages={totalPages} basePath="/people" />
+
       {/* Grid */}
       <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {people.map((person) => (
+        {people.map((person) => {
+          const anchorLetter = firstOfLetter.get(person.id)
+          return (
           <Link
             key={person.id}
+            id={anchorLetter ? `letter-${anchorLetter}` : undefined}
             href={`/people/${person.id}`}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative"
+            className={`bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative ${anchorLetter ? 'scroll-mt-24' : ''}`}
           >
             {/* Photo */}
             <div className="aspect-[3/4] relative bg-warm-100 dark:bg-warm-700">
@@ -224,7 +301,8 @@ export default async function PeoplePage({
               {person.personType}
             </span>
           </Link>
-        ))}
+          )
+        })}
       </FadeInGrid>
 
       {people.length === 0 && (

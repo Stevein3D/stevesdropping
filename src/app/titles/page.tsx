@@ -7,6 +7,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
+import { LetterJumper } from '@/components/ui/LetterJumper'
 
 async function getCastingSummaries(titleIds: number[]): Promise<Map<number, string[]>> {
   if (titleIds.length === 0) return new Map()
@@ -113,15 +114,75 @@ async function getNameSortedIds(
   const rows = await prisma.$queryRaw<{ id: number }[]>`
     SELECT DISTINCT t.id,
            LOWER(COALESCE(t."titleSort", t.name)) AS sort_key,
-           LOWER(t.name) AS name_key
+           LOWER(t.name) AS name_key,
+           t.year AS year_key
     FROM titles t
     LEFT JOIN episodes e ON e."titleId" = t.id
     ${whereClause}
     ORDER BY sort_key ${direction} NULLS LAST,
-             name_key ${direction}
+             name_key ${direction},
+             year_key ASC NULLS LAST
     LIMIT ${limit} OFFSET ${offset}
   `
   return rows.map(r => Number(r.id))
+}
+
+// For each starting letter, return the page number that contains the first
+// matching title under the current filters/sort direction. Non-letter starts
+// (numbers, symbols) get bucketed under '#'.
+async function getLetterPageMap(
+  search: string,
+  type: string | undefined,
+  dir: 'ASC' | 'DESC',
+): Promise<Record<string, number>> {
+  const conditions: Prisma.Sql[] = []
+  if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
+  if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
+
+  const whereClause = conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+    : Prisma.empty
+
+  const direction = Prisma.raw(dir)
+
+  const rows = await prisma.$queryRaw<{ letter: string; first_row: number | bigint }[]>`
+    WITH ranked AS (
+      SELECT DISTINCT
+        t.id,
+        LOWER(COALESCE(NULLIF(t."titleSort", ''), t.name)) AS sort_key,
+        LOWER(t.name) AS name_key,
+        t.year AS year_key
+      FROM titles t
+      LEFT JOIN episodes e ON e."titleId" = t.id
+      ${whereClause}
+    ),
+    numbered AS (
+      SELECT
+        sort_key,
+        ROW_NUMBER() OVER (
+          ORDER BY sort_key ${direction} NULLS LAST,
+                   name_key ${direction},
+                   year_key ASC NULLS LAST
+        ) AS rn
+      FROM ranked
+    )
+    SELECT
+      CASE
+        WHEN SUBSTRING(sort_key FROM 1 FOR 1) ~ '[a-z]'
+        THEN UPPER(SUBSTRING(sort_key FROM 1 FOR 1))
+        ELSE '#'
+      END AS letter,
+      MIN(rn) AS first_row
+    FROM numbered
+    GROUP BY letter
+  `
+
+  const map: Record<string, number> = {}
+  for (const row of rows) {
+    const page = Math.floor((Number(row.first_row) - 1) / PAGE_SIZE) + 1
+    map[row.letter] = page
+  }
+  return map
 }
 
 function getOrderBy(sort: string) {
@@ -167,6 +228,7 @@ export default async function TitlesPage({
   const select = {
     id: true,
     name: true,
+    titleSort: true,
     year: true,
     endDate: true,
     imageUrl: true,
@@ -175,7 +237,7 @@ export default async function TitlesPage({
     episodes: episodeSelect,
   }
 
-  const [total, titles] = await Promise.all([
+  const [total, titles, letterPages] = await Promise.all([
     prisma.title.count({ where }),
     isNameSort
       ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
@@ -190,11 +252,27 @@ export default async function TitlesPage({
           skip: (page - 1) * PAGE_SIZE,
           take: PAGE_SIZE,
         }),
+    isNameSort
+      ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
+      : Promise.resolve({} as Record<string, number>),
   ])
 
   const castingSummaries = await getCastingSummaries(titles.map(t => t.id))
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Tag the first tile of each letter group with an anchor id so LetterJumper
+  // can scroll to it. Only meaningful under a name sort.
+  const firstOfLetter = new Map<number, string>()
+  if (isNameSort) {
+    let prev = ''
+    for (const t of titles) {
+      const c = (t.titleSort ?? t.name).trim()[0]?.toLowerCase() ?? ''
+      const letter = /[a-z]/.test(c) ? c.toUpperCase() : '#'
+      if (letter !== prev) firstOfLetter.set(t.id, letter)
+      prev = letter
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -233,6 +311,9 @@ export default async function TitlesPage({
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
+        {isNameSort && Object.keys(letterPages).length > 0 && (
+          <LetterJumper letterPages={letterPages} basePath="/titles" />
+        )}
         {(search || type || sort) && (
           <Link
             href="/titles"
@@ -242,6 +323,8 @@ export default async function TitlesPage({
           </Link>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} basePath="/titles" />
 
       {/* Grid */}
       <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -265,11 +348,13 @@ export default async function TitlesPage({
             }
           }
 
+          const anchorLetter = firstOfLetter.get(title.id)
           return (
             <Link
               key={title.id}
+              id={anchorLetter ? `letter-${anchorLetter}` : undefined}
               href={`/titles/${title.id}`}
-              className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative"
+              className={`bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative ${anchorLetter ? 'scroll-mt-24' : ''}`}
             >
               {/* Poster */}
               <div className="aspect-[2/3] relative bg-warm-100 dark:bg-warm-700">

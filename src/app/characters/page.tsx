@@ -6,6 +6,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterSelect } from '@/components/ui/FilterSelect'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
+import { LetterJumper } from '@/components/ui/LetterJumper'
 
 export const revalidate = 60
 
@@ -62,6 +63,54 @@ async function getNameSortedIds(
   return rows.map(r => Number(r.id))
 }
 
+// For each starting letter of name, return the page number that contains the
+// first matching character under the current filters/sort direction.
+async function getLetterPageMap(
+  search: string,
+  type: string | undefined,
+  dir: 'ASC' | 'DESC',
+): Promise<Record<string, number>> {
+  const conditions: Prisma.Sql[] = []
+  if (search) conditions.push(Prisma.sql`name ILIKE ${'%' + search + '%'}`)
+  if (type)   conditions.push(Prisma.sql`"characterType"::text = ${type}`)
+
+  const whereClause = conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+    : Prisma.empty
+
+  const direction = Prisma.raw(dir)
+
+  const rows = await prisma.$queryRaw<{ letter: string; first_row: number | bigint }[]>`
+    WITH ranked AS (
+      SELECT id, LOWER(name) AS sort_key
+      FROM characters
+      ${whereClause}
+    ),
+    numbered AS (
+      SELECT
+        sort_key,
+        ROW_NUMBER() OVER (ORDER BY sort_key ${direction} NULLS LAST) AS rn
+      FROM ranked
+    )
+    SELECT
+      CASE
+        WHEN SUBSTRING(sort_key FROM 1 FOR 1) ~ '[a-z]'
+        THEN UPPER(SUBSTRING(sort_key FROM 1 FOR 1))
+        ELSE '#'
+      END AS letter,
+      MIN(rn) AS first_row
+    FROM numbered
+    GROUP BY letter
+  `
+
+  const map: Record<string, number> = {}
+  for (const row of rows) {
+    const page = Math.floor((Number(row.first_row) - 1) / PAGE_SIZE) + 1
+    map[row.letter] = page
+  }
+  return map
+}
+
 function getOrderBy(sort: string) {
   switch (sort) {
     case 'appearances': return { castings: { _count: 'desc' as const } }
@@ -97,7 +146,7 @@ export default async function CharactersPage({
     _count: { select: { castings: true } },
   }
 
-  const [total, characters] = await Promise.all([
+  const [total, characters, letterPages] = await Promise.all([
     prisma.character.count({ where }),
     isNameSort
       ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
@@ -112,9 +161,23 @@ export default async function CharactersPage({
           skip: (page - 1) * PAGE_SIZE,
           take: PAGE_SIZE,
         }),
+    isNameSort
+      ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
+      : Promise.resolve({} as Record<string, number>),
   ])
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  const firstOfLetter = new Map<number, string>()
+  if (isNameSort) {
+    let prev = ''
+    for (const c of characters) {
+      const first = c.name.trim()[0]?.toLowerCase() ?? ''
+      const letter = /[a-z]/.test(first) ? first.toUpperCase() : '#'
+      if (letter !== prev) firstOfLetter.set(c.id, letter)
+      prev = letter
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -155,6 +218,9 @@ export default async function CharactersPage({
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
+        {isNameSort && Object.keys(letterPages).length > 0 && (
+          <LetterJumper letterPages={letterPages} basePath="/characters" />
+        )}
         {(search || type || sort) && (
           <Link
             href="/characters"
@@ -165,12 +231,17 @@ export default async function CharactersPage({
         )}
       </div>
 
+      <Pagination page={page} totalPages={totalPages} basePath="/characters" />
+
       <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {characters.map((character) => (
+        {characters.map((character) => {
+          const anchorLetter = firstOfLetter.get(character.id)
+          return (
           <Link
             key={character.id}
+            id={anchorLetter ? `letter-${anchorLetter}` : undefined}
             href={`/characters/${character.id}`}
-            className="bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative"
+            className={`bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative ${anchorLetter ? 'scroll-mt-24' : ''}`}
           >
             {/* Image */}
             <div className="aspect-[3/4] relative bg-warm-100 dark:bg-warm-700">
@@ -214,7 +285,8 @@ export default async function CharactersPage({
               {character.characterType}
             </span>
           </Link>
-        ))}
+          )
+        })}
       </FadeInGrid>
 
       {characters.length === 0 && (
