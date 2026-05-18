@@ -43,7 +43,8 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
     return Array.from(set).sort((a, b) => a - b)
   }, [episodes])
 
-  const [active, setActive] = useState<number>(seasons[seasons.length - 1] ?? 0)
+  type Active = 'all' | number
+  const [active, setActive] = useState<Active>(seasons[0] ?? 'all')
 
   const counts = useMemo(() => {
     const m = new Map<number, number>()
@@ -52,9 +53,14 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
   }, [episodes])
 
   const visible = useMemo(
-    () => episodes
-      .filter((e) => e.season === active)
-      .sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)),
+    () => {
+      const filtered = active === 'all' ? episodes : episodes.filter((e) => e.season === active)
+      return [...filtered].sort((a, b) =>
+        (a.season ?? 0) !== (b.season ?? 0)
+          ? (a.season ?? 0) - (b.season ?? 0)
+          : (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
+      )
+    },
     [episodes, active]
   )
 
@@ -72,6 +78,17 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
     <div>
       {seasons.length > 1 && (
         <div className="flex gap-0.5 border-b border-cream-border dark:border-warm-700 mb-4 overflow-x-auto overflow-y-hidden no-scrollbar">
+          <button
+            onClick={() => setActive('all')}
+            className={`px-3.5 py-2.5 text-xs font-semibold tracking-[0.04em] uppercase border-b-2 -mb-px whitespace-nowrap transition-colors ${
+              active === 'all'
+                ? 'text-steve border-b-steve'
+                : 'text-warm-600 dark:text-warm-500 border-transparent hover:text-warm-900 dark:hover:text-warm-200'
+            }`}
+          >
+            All
+            <span className="text-[10px] text-warm-600 dark:text-warm-500 ml-1.5">({episodes.length})</span>
+          </button>
           {seasons.map((s) => {
             const isActive = s === active
             return (
@@ -100,7 +117,7 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
   )
 }
 
-function EpisodeRow({ ep, index }: { ep: EpisodeForList; index: number }) {
+export function EpisodeRow({ ep, index }: { ep: EpisodeForList; index: number }) {
   const epNum = ep.episodeNumber != null ? String(ep.episodeNumber).padStart(2, '0') : '--'
   const dateInfo = formatEpisodeDate(ep.releaseDate)
   return (

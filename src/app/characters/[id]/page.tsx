@@ -228,9 +228,9 @@ export default async function CharacterPage({ params }: { params: { id: string }
 
           {/* Stats — horizontal in both modes; under content on mobile, right column on desktop */}
           <div className="col-span-2 sm:col-span-1 flex gap-[18px] pt-3 sm:pt-0 border-t sm:border-t-0 border-cream-subtle dark:border-warm-700">
-            <Stat value={character.castings.length} label="Appearances" />
-            <Stat value={distinctPersons.size} label="Actors" />
-            <Stat value={distinctTitles.size} label="Titles" />
+            <Stat value={character.castings.length} label={character.castings.length === 1 ? 'Appearance' : 'Appearances'} />
+            <Stat value={distinctPersons.size} label={distinctPersons.size === 1 ? 'Actor' : 'Actors'} />
+            <Stat value={distinctTitles.size} label={distinctTitles.size === 1 ? 'Title' : 'Titles'} />
           </div>
         </div>
       </article>

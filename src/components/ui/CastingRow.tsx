@@ -52,7 +52,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
   }, [tg.episodes])
 
   type Filter = 'all' | number
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>(seasons[0] ?? 'all')
 
   const counts = useMemo(() => {
     const m = new Map<number, number>()
@@ -69,11 +69,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
     )
   }, [tg.episodes, filter])
 
-  const subLine = tg.title.description
-    ? tg.title.description.length > 80
-      ? tg.title.description.slice(0, 80).trim() + '…'
-      : tg.title.description
-    : null
+  const subLine = tg.title.description ?? null
 
   return (
     <div className="border-b border-dotted border-cream-border dark:border-warm-700 py-3 sm:py-3 px-1.5">

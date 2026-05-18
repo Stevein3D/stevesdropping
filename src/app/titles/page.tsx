@@ -349,11 +349,14 @@ export default async function TitlesPage({
           }
 
           const anchorLetter = firstOfLetter.get(title.id)
+          const titleHref = search
+            ? `/titles/${title.id}?q=${encodeURIComponent(search)}`
+            : `/titles/${title.id}`
           return (
             <Link
               key={title.id}
               id={anchorLetter ? `letter-${anchorLetter}` : undefined}
-              href={`/titles/${title.id}`}
+              href={titleHref}
               className={`bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg overflow-hidden hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition relative ${anchorLetter ? 'scroll-mt-24' : ''}`}
             >
               {/* Poster */}

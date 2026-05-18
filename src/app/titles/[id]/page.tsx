@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 import { TitleBadge } from '@/components/ui/TitleBadge'
 import { BackButton } from '@/components/ui/BackButton'
 import { Placeholder } from '@/components/ui/Placeholder'
-import { EpisodesBySeason } from '@/components/ui/EpisodesBySeason'
+import { EpisodesBySeason, EpisodeRow, type EpisodeForList } from '@/components/ui/EpisodesBySeason'
 
 export const revalidate = 86400
 
@@ -91,12 +91,40 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function TitlePage({ params }: { params: { id: string } }) {
+export default async function TitlePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams?: { q?: string }
+}) {
   const id = parseInt(params.id)
   if (isNaN(id)) notFound()
 
   const title = await getTitle(id)
   if (!title) notFound()
+
+  const searchQuery = searchParams?.q?.trim() || ''
+  const matchedEpisodes: EpisodeForList[] = searchQuery
+    ? title.episodes
+        .filter((e) => e.episodeTitle?.toLowerCase().includes(searchQuery.toLowerCase()))
+        .map((e) => ({
+          id: e.id,
+          season: e.season,
+          episodeNumber: e.episodeNumber,
+          episodeTitle: e.episodeTitle,
+          description: e.description,
+          releaseDate: e.releaseDate ? e.releaseDate.toISOString() : null,
+          runtime: e.runtime,
+          castings: e.castings.map((c) => ({
+            id: c.id,
+            personId: c.personId,
+            characterId: c.characterId,
+            person: { name: c.person.name, imageUrl: c.person.imageUrl },
+            character: { name: c.character.name },
+          })),
+        }))
+    : []
 
   const titleStartYear = title.year ?? null
   const titleEndYear = title.endDate ? title.endDate.getUTCFullYear() : null
@@ -201,9 +229,9 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
   const distinctSteves = new Set(cast.map((c) => c.characterId)).size
 
   type Stat = { value: string; label: string }
-  const stats: Stat[] = [{ value: String(distinctSteves), label: 'Steves' }]
+  const stats: Stat[] = [{ value: String(distinctSteves), label: distinctSteves === 1 ? 'Steve' : 'Steves' }]
   if (title.episodes.length > 0) {
-    stats.push({ value: String(title.episodes.length), label: 'Episodes' })
+    stats.push({ value: String(title.episodes.length), label: title.episodes.length === 1 ? 'Episode' : 'Episodes' })
   } else if (title.runtime != null) {
     stats.push({ value: String(title.runtime), label: 'Runtime · min' })
   }
@@ -346,6 +374,25 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
               </div>
             </div>
           ))}
+        </section>
+      )}
+
+      {/* Matched episodes (only when arriving from a search) */}
+      {matchedEpisodes.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-baseline border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-x-3 gap-y-1">
+            <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
+              Matched Episodes
+            </h2>
+            <span className="text-xs text-warm-600 dark:text-warm-500">
+              {matchedEpisodes.length} match{matchedEpisodes.length === 1 ? '' : 'es'} for &ldquo;{searchQuery}&rdquo;
+            </span>
+          </div>
+          <div className="rounded-md overflow-hidden border border-cream-subtle dark:border-warm-700">
+            {matchedEpisodes.map((ep, i) => (
+              <EpisodeRow key={ep.id} ep={ep} index={i} />
+            ))}
+          </div>
         </section>
       )}
 

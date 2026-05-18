@@ -10,6 +10,13 @@ import { CastingRow, type CastingRowData } from '@/components/ui/CastingRow'
 
 export const revalidate = 86400
 
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function formatFullDate(d: Date | null): string | null {
+  if (!d) return null
+  return `${MONTH_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`
+}
+
 const PERSON_TYPE_LABEL: Record<string, string> = {
   actor:      'Actor',
   artist:     'Artist',
@@ -201,8 +208,10 @@ export default async function PersonPage({ params }: { params: { id: string } })
   const kickerParts: string[] = []
   kickerParts.push((PERSON_TYPE_LABEL[person.personType] ?? person.personType).toUpperCase())
   const lifeDates: string[] = []
-  if (person.birthYear) lifeDates.push(`b. ${person.birthYear}`)
-  if (person.deathYear) lifeDates.push(`d. ${person.deathYear}`)
+  const birthText = formatFullDate(person.birthDate) ?? (person.birthYear ? String(person.birthYear) : null)
+  const deathText = formatFullDate(person.deathDate) ?? (person.deathYear ? String(person.deathYear) : null)
+  if (birthText) lifeDates.push(`b. ${birthText}`)
+  if (deathText) lifeDates.push(`d. ${deathText}`)
   if (lifeDates.length > 0) kickerParts.push(lifeDates.join(' – '))
   if (person.birthplace) kickerParts.push(person.birthplace)
   const kicker = kickerParts.join(' · ')
@@ -263,9 +272,9 @@ export default async function PersonPage({ params }: { params: { id: string } })
 
           {/* Stats — horizontal in both modes; under content on mobile, right column on desktop */}
           <div className="col-span-2 sm:col-span-1 flex gap-[18px] pt-3 sm:pt-0 border-t sm:border-t-0 border-cream-subtle dark:border-warm-700">
-            <Stat value={person.castings.length} label="Appearances" />
-            <Stat value={distinctCharacters.size} label="Steves" />
-            <Stat value={distinctTitles.size} label="Titles" />
+            <Stat value={person.castings.length} label={person.castings.length === 1 ? 'Appearance' : 'Appearances'} />
+            <Stat value={distinctCharacters.size} label={distinctCharacters.size === 1 ? 'Steve' : 'Steves'} />
+            <Stat value={distinctTitles.size} label={distinctTitles.size === 1 ? 'Title' : 'Titles'} />
           </div>
         </div>
       </article>
