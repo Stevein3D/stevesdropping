@@ -98,7 +98,7 @@ export function StatsSection({
       <p className="text-sm text-warm-600 dark:text-warm-500 mt-4 leading-relaxed">
         That's a lot of Steves!
       </p>
-      <p className="text-sm text-warm-600 dark:text-warm-500 mt-4 leading-relaxed">
+      <p className="text-sm text-warm-600 dark:text-warm-500 mt-1 leading-relaxed">
         {' '}
         <span className="font-display text-3xl text-steve">{castings.toLocaleString()}</span>
         {' '}documented appearances and counting.
