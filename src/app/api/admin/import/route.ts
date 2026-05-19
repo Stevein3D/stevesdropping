@@ -162,14 +162,20 @@ function toEnum<T extends string>(value: string | null, fallback: T): T {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const file = formData.get('file')
-
-    if (!file || typeof file === 'string') {
-      return NextResponse.json({ ok: false, error: 'No file uploaded' }, { status: 400 })
+    const { url } = (await request.json()) as { url?: string }
+    if (!url || typeof url !== 'string') {
+      return NextResponse.json({ ok: false, error: 'No blob URL provided' }, { status: 400 })
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
+    const blobRes = await fetch(url)
+    if (!blobRes.ok) {
+      return NextResponse.json(
+        { ok: false, error: `Failed to fetch uploaded file: ${blobRes.status} ${blobRes.statusText}` },
+        { status: 502 },
+      )
+    }
+
+    const buffer = Buffer.from(await blobRes.arrayBuffer())
     const wb = xlsx.read(buffer, { type: 'buffer' })
 
     const personRows    = getSheet<PersonRow>(wb, 'Person')

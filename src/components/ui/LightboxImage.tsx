@@ -14,7 +14,7 @@ interface Props {
   thumbnailSrc?: string
 }
 
-export function LightboxImage({ src, alt, sizes, containerClassName, imageClassName = 'object-cover', scale = 3, thumbnailSrc }: Props) {
+export function LightboxImage({ src, alt, sizes, containerClassName, imageClassName = 'object-cover', scale = 8, thumbnailSrc }: Props) {
   const [preview, setPreview] = useState<CSSProperties | null>(null)
   const [mounted, setMounted] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -25,8 +25,16 @@ export function LightboxImage({ src, alt, sizes, containerClassName, imageClassN
   const show = () => {
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
-    const w = Math.min(rect.width * scale, 600)
-    const h = (rect.height / rect.width) * w
+    const maxW = Math.min(window.innerWidth * 0.5, 800)
+    const maxH = window.innerHeight * 0.85
+    const aspect = rect.height / rect.width
+
+    let w = Math.min(rect.width * scale, maxW)
+    let h = aspect * w
+    if (h > maxH) {
+      h = maxH
+      w = h / aspect
+    }
 
     let left = rect.right + 10
     if (left + w > window.innerWidth - 10) left = rect.left - w - 10
@@ -68,7 +76,7 @@ export function LightboxImage({ src, alt, sizes, containerClassName, imageClassN
       {mounted && preview && createPortal(
         <div
           style={preview}
-          className="rounded-lg overflow-hidden shadow-2xl ring-1 ring-black/20 pointer-events-none"
+          className="shadow-2xl pointer-events-none"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={alt} className="w-full h-full object-cover" />

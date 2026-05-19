@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { TitleBadge } from './TitleBadge'
+import { Placeholder } from './Placeholder'
+import { LightboxImage } from './LightboxImage'
 
 type Episode = {
   castingId: number
@@ -30,9 +32,11 @@ type Title = {
   id: number
   name: string
   year: number | null
+  endYear: number | null
   description: string | null
   genre: string | null
   titleType: string
+  imageUrl: string | null
 }
 
 export type CastingRowData = {
@@ -53,6 +57,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
 
   type Filter = 'all' | number
   const [filter, setFilter] = useState<Filter>(seasons[0] ?? 'all')
+  const [expandedFor, setExpandedFor] = useState<Filter | null>(null)
 
   const counts = useMemo(() => {
     const m = new Map<number, number>()
@@ -69,38 +74,68 @@ export function CastingRow({ data }: { data: CastingRowData }) {
     )
   }, [tg.episodes, filter])
 
+  const COLLAPSE_THRESHOLD = 8
+  const VISIBLE_WHEN_COLLAPSED = 6
+  const isExpanded = expandedFor === filter
+  const canCollapse = visible.length > COLLAPSE_THRESHOLD
+  const displayedEpisodes = canCollapse && !isExpanded
+    ? visible.slice(0, VISIBLE_WHEN_COLLAPSED)
+    : visible
+  const hiddenCount = visible.length - VISIBLE_WHEN_COLLAPSED
+
   const subLine = tg.title.description ?? null
+
+  const yearText = tg.title.year != null
+    ? tg.title.endYear != null && tg.title.endYear !== tg.title.year
+      ? `${tg.title.year}–${tg.title.endYear}`
+      : String(tg.title.year)
+    : ''
 
   return (
     <div className="border-b border-dotted border-cream-border dark:border-warm-700 py-3 sm:py-3 px-1.5">
-      {/* Mobile-only header strip */}
-      <div className="flex items-center justify-between sm:hidden mb-1.5">
-        <span className="font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums">
-          {tg.title.year ?? ''}
-        </span>
-        <TitleBadge type={tg.title.titleType} />
-      </div>
+      {/* Header row: poster | year (desktop) | title + inline badge + sub */}
+      <div className="grid grid-cols-[48px_1fr] sm:grid-cols-[48px_56px_1fr] gap-3 items-start">
+        {/* Poster */}
+        <Link
+          href={`/titles/${tg.titleId}`}
+          className="block w-12 shrink-0 hover:opacity-90 transition-opacity"
+        >
+          {tg.title.imageUrl ? (
+            <LightboxImage
+              src={tg.title.imageUrl}
+              alt={tg.title.name}
+              sizes="48px"
+              containerClassName="aspect-[2/3] rounded-sm overflow-hidden relative bg-warm-100 dark:bg-warm-700"
+            />
+          ) : (
+            <Placeholder name={tg.title.name} variant="poster" className="rounded-sm" />
+          )}
+        </Link>
 
-      {/* Header row: year / title+sub / badge */}
-      <div className="sm:grid sm:grid-cols-[56px_1fr_90px] sm:gap-3 sm:items-baseline">
-        <span className="hidden sm:inline font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums">
-          {tg.title.year ?? ''}
+        {/* Year (desktop only) */}
+        <span className="hidden sm:inline font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums pt-1 whitespace-nowrap">
+          {yearText}
         </span>
+
+        {/* Title + inline badge + sub */}
         <div className="min-w-0">
-          <Link
-            href={`/titles/${tg.titleId}`}
-            className="font-serif font-bold text-[15px] sm:text-[16px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
-          >
-            {tg.title.name}
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/titles/${tg.titleId}`}
+              className="font-serif font-bold text-[15px] sm:text-[16px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
+            >
+              {tg.title.name}
+            </Link>
+            <TitleBadge type={tg.title.titleType} />
+            <span className="sm:hidden font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums">
+              {yearText}
+            </span>
+          </div>
           {subLine && (
             <span className="block mt-1 text-[13px] text-warm-600 dark:text-warm-500 font-sans font-normal leading-[1.45]">
               {subLine}
             </span>
           )}
-        </div>
-        <div className="hidden sm:flex sm:justify-end">
-          <TitleBadge type={tg.title.titleType} />
         </div>
       </div>
 
@@ -136,8 +171,9 @@ export function CastingRow({ data }: { data: CastingRowData }) {
               ))}
             </div>
           )}
+          <div className="relative pb-3">
           <div className="rounded-md overflow-hidden border border-cream-subtle dark:border-warm-700">
-            {visible.map((e, i) => {
+            {displayedEpisodes.map((e, i) => {
               const epNum = e.episodeNumber != null ? String(e.episodeNumber).padStart(2, '0') : '--'
               const dateInfo = formatEpisodeDate(e.releaseDate)
               return (
@@ -146,7 +182,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
                   className={`grid grid-cols-[64px_1fr_auto] sm:grid-cols-[72px_1fr_auto] gap-3 sm:gap-[18px] px-3 py-3 sm:px-4 sm:py-3.5 items-start ${
                     i % 2 === 0
                       ? 'bg-cream-card dark:bg-warm-50/[0.04]'
-                      : 'bg-transparent'
+                      : 'bg-cream-subtle/30 dark:bg-warm-700/60'
                   }`}
                 >
                   <div className="leading-none">
@@ -182,6 +218,17 @@ export function CastingRow({ data }: { data: CastingRowData }) {
                 </div>
               )
             })}
+          </div>
+          {canCollapse && (
+            <div className="flex justify-center -mt-3">
+              <button
+                onClick={() => setExpandedFor(isExpanded ? null : filter)}
+                className="bg-cream-card dark:bg-warm-700 border border-cream-subtle dark:border-warm-700 rounded-full px-4 py-1 text-[10px] uppercase font-semibold tracking-[0.12em] text-warm-600 dark:text-warm-500 hover:text-steve dark:hover:text-steve transition-colors"
+              >
+                {isExpanded ? 'Show fewer' : `Show ${hiddenCount} more`}
+              </button>
+            </div>
+          )}
           </div>
         </div>
       )}

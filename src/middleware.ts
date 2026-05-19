@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const COOKIE = 'admin_session'
-const PUBLIC = ['/admin/login', '/api/admin/login']
+// /api/admin/import/upload-url receives Vercel's blob.upload-completed callback,
+// which doesn't carry the admin cookie. handleUpload verifies its own bearer
+// token; we re-check the admin cookie inside the route for the user-initiated leg.
+const PUBLIC = ['/admin/login', '/api/admin/login', '/api/admin/import/upload-url']
 
 // AI training crawlers + aggressive SEO bots — blocked at the edge with 403.
 // Matched as a case-insensitive substring against the user-agent.

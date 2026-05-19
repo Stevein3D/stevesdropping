@@ -45,6 +45,7 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
 
   type Active = 'all' | number
   const [active, setActive] = useState<Active>(seasons[0] ?? 'all')
+  const [expandedFor, setExpandedFor] = useState<Active | null>(null)
 
   const counts = useMemo(() => {
     const m = new Map<number, number>()
@@ -108,11 +109,50 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
           })}
         </div>
       )}
+      <CollapsibleEpisodeList
+        episodes={visible}
+        expanded={expandedFor === active}
+        onToggle={(next) => setExpandedFor(next ? active : null)}
+      />
+    </div>
+  )
+}
+
+const COLLAPSE_THRESHOLD = 8
+const VISIBLE_WHEN_COLLAPSED = 6
+
+function CollapsibleEpisodeList({
+  episodes,
+  expanded,
+  onToggle,
+}: {
+  episodes: EpisodeForList[]
+  expanded: boolean
+  onToggle: (next: boolean) => void
+}) {
+  const canCollapse = episodes.length > COLLAPSE_THRESHOLD
+  const displayed = canCollapse && !expanded
+    ? episodes.slice(0, VISIBLE_WHEN_COLLAPSED)
+    : episodes
+  const hidden = episodes.length - VISIBLE_WHEN_COLLAPSED
+
+  return (
+    <div className="relative pb-3">
       <div className="rounded-md overflow-hidden border border-cream-subtle dark:border-warm-700">
-        {visible.map((ep, i) => (
+        {displayed.map((ep, i) => (
           <EpisodeRow key={ep.id} ep={ep} index={i} />
         ))}
       </div>
+      {canCollapse && (
+        <div className="flex justify-center -mt-3">
+          <button
+            onClick={() => onToggle(!expanded)}
+            className="bg-cream-card dark:bg-warm-700 border border-cream-subtle dark:border-warm-700 rounded-full px-4 py-1 text-[10px] uppercase font-semibold tracking-[0.12em] text-warm-600 dark:text-warm-500 hover:text-steve dark:hover:text-steve transition-colors"
+          >
+            {expanded ? 'Show fewer' : `Show ${hidden} more`}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -125,7 +165,7 @@ export function EpisodeRow({ ep, index }: { ep: EpisodeForList; index: number })
       className={`grid grid-cols-[64px_1fr_auto] sm:grid-cols-[72px_1fr_auto] gap-3 sm:gap-[18px] px-3 py-3 sm:px-4 sm:py-3.5 items-start ${
         index % 2 === 0
           ? 'bg-cream-card dark:bg-warm-50/[0.04]'
-          : 'bg-transparent'
+          : 'bg-cream-subtle/30 dark:bg-warm-700/60'
       }`}
     >
       <div className="leading-none">

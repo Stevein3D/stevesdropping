@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
+import { upload } from '@vercel/blob/client'
 
 type Summary = {
   people: number
@@ -19,6 +20,7 @@ export default function ImportPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<'idle' | 'uploading' | 'importing'>('idle')
   const [result, setResult] = useState<Result | null>(null)
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -30,15 +32,21 @@ export default function ImportPage() {
     if (!file) return
     setLoading(true)
     setResult(null)
-
-    const formData = new FormData()
-    formData.append('file', file)
+    setStage('uploading')
 
     try {
-      const res = await fetch('/api/admin/import', { method: 'POST', body: formData })
-      // If the function was killed (timeout, OOM, edge error), the response body
-      // is usually an HTML error page — surface the status code instead of a
-      // generic "Network error".
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/admin/import/upload-url',
+      })
+
+      setStage('importing')
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: blob.url }),
+      })
+
       const text = await res.text()
       let data: Result
       try {
@@ -57,6 +65,7 @@ export default function ImportPage() {
       })
     }
 
+    setStage('idle')
     setLoading(false)
   }
 
@@ -102,7 +111,7 @@ export default function ImportPage() {
           disabled={!file || loading}
           className="bg-steve hover:bg-steve-hover text-cream text-sm px-6 py-2 rounded-lg transition-colors disabled:opacity-40"
         >
-          {loading ? 'Importing…' : 'Import'}
+          {stage === 'uploading' ? 'Uploading…' : stage === 'importing' ? 'Importing…' : 'Import'}
         </button>
       </div>
 
