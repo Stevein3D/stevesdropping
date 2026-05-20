@@ -39,6 +39,7 @@ export default function ImportPage() {
         access: 'public',
         handleUploadUrl: '/api/admin/import/upload-url',
         multipart: true,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
 
       setStage('importing')

@@ -23,17 +23,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const json = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (pathname) => {
+        console.log('[upload-url] generating token for:', pathname, 'tokenPrefix:', process.env.BLOB_READ_WRITE_TOKEN?.slice(0, 24), 'tokenLength:', process.env.BLOB_READ_WRITE_TOKEN?.length)
         const session = request.cookies.get(COOKIE)?.value
         const expected = btoa(process.env.ADMIN_PASSWORD ?? '')
         if (!session || session !== expected) {
           throw new Error('Unauthorized')
         }
+        // Intentionally not restricting allowedContentTypes — browser-detected
+        // MIME for .xlsx can vary across OSes (sometimes octet-stream, sometimes
+        // the Office MIME, sometimes application/zip).
         return {
-          allowedContentTypes: [
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/octet-stream',
-          ],
           maximumSizeInBytes: 500 * 1024 * 1024,
         }
       },
