@@ -7,11 +7,14 @@ import { StatsSection } from '@/components/ui/StatsSection'
 import { BrowseTile } from '@/components/ui/BrowseTile'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 
-export const revalidate = 3600
+// 24h ISR window with a cron-triggered revalidate at midnight ET to refresh
+// "today" content right at the day boundary. See vercel.json + /api/revalidate.
+export const revalidate = 86400
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 type RawRow = { id: bigint; name: string; imageUrl: string | null; year: number; month: number; day: number; updatedAt: Date }
+type CarouselRow = { id: bigint; name: string; imageUrl: string; updatedAt: Date }
 
 function toEvent(
   row: RawRow,
@@ -58,7 +61,22 @@ export default async function HomePage() {
     ? `${MONTH_SHORT[tomMonth - 1]} ${tomDay}–${weDay}`
     : `${MONTH_SHORT[tomMonth - 1]} ${tomDay} – ${MONTH_SHORT[weMonth - 1]} ${weDay}`
 
-  const [
+  let peopleCount = 0
+  let characterCount = 0
+  let titleCount = 0
+  let castingCount = 0
+  let carouselPeople: CarouselRow[] = []
+  let carouselCharacters: CarouselRow[] = []
+  let carouselTitles: CarouselRow[] = []
+  let bornToday: RawRow[] = []
+  let diedToday: RawRow[] = []
+  let releasedToday: RawRow[] = []
+  let bornComing: RawRow[] = []
+  let diedComing: RawRow[] = []
+  let releasedComing: RawRow[] = []
+
+  try {
+    ;[
     peopleCount, characterCount, titleCount, castingCount,
     carouselPeople, carouselCharacters, carouselTitles,
     bornToday, diedToday, releasedToday,
@@ -229,7 +247,12 @@ export default async function HomePage() {
             AND EXTRACT(MONTH FROM "releaseDate") = ${todayMonth}
             AND EXTRACT(DAY   FROM "releaseDate") > ${todayDay}
             AND EXTRACT(DAY   FROM "releaseDate") <= ${weDay}`,
-  ])
+    ])
+  } catch (err) {
+    // DB unreachable (e.g., Neon auto-suspend at build/render time). Render
+    // with empty state; ISR or the next cron-triggered revalidate will repopulate.
+    console.error('[home] DB unreachable; rendering empty state:', err)
+  }
 
   const todayEvents: HistoryEvent[] = [
     ...bornToday.map((r)     => toEvent(r, 'born',     '/people', currentYear)),
