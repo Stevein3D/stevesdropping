@@ -36,7 +36,7 @@ export default function ImportPage() {
 
     try {
       const blob = await upload(`imports/${Date.now()}.xlsx`, file, {
-        access: 'public',
+        access: 'private',
         handleUploadUrl: '/api/admin/import/upload-url',
         multipart: true,
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

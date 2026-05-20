@@ -13,7 +13,7 @@ export async function GET() {
     const blob = await put(
       `test/${Date.now()}.txt`,
       `hello from stevesdropping at ${new Date().toISOString()}`,
-      { access: 'public', contentType: 'text/plain' },
+      { access: 'private', contentType: 'text/plain' },
     )
     return NextResponse.json({ ok: true, url: blob.url, tokenLength, tokenPrefix })
   } catch (err) {

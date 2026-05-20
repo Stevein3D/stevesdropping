@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as xlsx from 'xlsx'
+import { get } from '@vercel/blob'
 import { prisma } from '@/lib/prisma'
 import { PersonType, CharacterType, TitleType } from '@prisma/client'
 
@@ -175,16 +176,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'No blob URL provided' }, { status: 400 })
     }
 
-    const blobRes = await fetch(url)
-    if (!blobRes.ok) {
+    const blobRes = await get(url, { access: 'private' })
+    if (!blobRes || blobRes.statusCode !== 200) {
       return NextResponse.json(
-        { ok: false, error: `Failed to fetch uploaded file: ${blobRes.status} ${blobRes.statusText}` },
+        { ok: false, error: `Failed to fetch uploaded file from blob store` },
         { status: 502 },
       )
     }
 
-    const contentType = blobRes.headers.get('content-type')
-    const buffer = Buffer.from(await blobRes.arrayBuffer())
+    const contentType = blobRes.blob.contentType
+    const buffer = Buffer.from(await new Response(blobRes.stream).arrayBuffer())
     console.log(`[import] Fetched ${buffer.length} bytes from blob, content-type: ${contentType}`)
 
     let wb: xlsx.WorkBook
