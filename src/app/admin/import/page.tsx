@@ -38,6 +38,7 @@ export default function ImportPage() {
       const blob = await upload(`imports/${Date.now()}.xlsx`, file, {
         access: 'public',
         handleUploadUrl: '/api/admin/import/upload-url',
+        multipart: true,
       })
 
       setStage('importing')
