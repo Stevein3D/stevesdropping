@@ -162,7 +162,15 @@ function toEnum<T extends string>(value: string | null, fallback: T): T {
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = (await request.json()) as { url?: string }
+    let url: string | undefined
+    try {
+      const json = (await request.json()) as { url?: string }
+      url = json.url
+    } catch (err) {
+      console.error('[import] Failed to parse request body:', err)
+      return NextResponse.json({ ok: false, error: 'Invalid request body (expected JSON)' }, { status: 400 })
+    }
+
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ ok: false, error: 'No blob URL provided' }, { status: 400 })
     }
@@ -175,8 +183,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const contentType = blobRes.headers.get('content-type')
     const buffer = Buffer.from(await blobRes.arrayBuffer())
-    const wb = xlsx.read(buffer, { type: 'buffer' })
+    console.log(`[import] Fetched ${buffer.length} bytes from blob, content-type: ${contentType}`)
+
+    let wb: xlsx.WorkBook
+    try {
+      wb = xlsx.read(buffer, { type: 'buffer' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to parse XLSX'
+      const preview = buffer.slice(0, 64).toString('utf-8').replace(/[\x00-\x1f]/g, '·')
+      console.error(`[import] xlsx.read failed: ${message}. First 64 bytes (printable): ${preview}`)
+      return NextResponse.json(
+        { ok: false, error: `Failed to parse XLSX (${buffer.length} bytes): ${message}` },
+        { status: 400 },
+      )
+    }
 
     const personRows    = getSheet<PersonRow>(wb, 'Person')
     const characterRows = getSheet<CharacterRow>(wb, 'Character')

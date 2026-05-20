@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 
 export const dynamic = 'force-dynamic'
@@ -11,14 +10,21 @@ const COOKIE = 'admin_session'
 //   2. Vercel  → server: "blob.upload-completed" callback — has no cookie;
 //      handleUpload verifies its own bearer token, and middleware lets it pass.
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody
-
   try {
+    let body: HandleUploadBody
+    const raw = await request.text()
+    try {
+      body = JSON.parse(raw) as HandleUploadBody
+    } catch (err) {
+      console.error('[upload-url] Failed to parse body. First 200 chars:', raw.slice(0, 200))
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
     const json = await handleUpload({
       body,
       request,
       onBeforeGenerateToken: async () => {
-        const session = cookies().get(COOKIE)?.value
+        const session = request.cookies.get(COOKIE)?.value
         const expected = btoa(process.env.ADMIN_PASSWORD ?? '')
         if (!session || session !== expected) {
           throw new Error('Unauthorized')
@@ -28,7 +34,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'application/octet-stream',
           ],
-          maximumSizeInBytes: 100 * 1024 * 1024,
+          maximumSizeInBytes: 500 * 1024 * 1024,
         }
       },
       onUploadCompleted: async () => {
@@ -38,6 +44,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(json)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Upload token error'
+    console.error('[upload-url] handleUpload threw:', message)
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }
