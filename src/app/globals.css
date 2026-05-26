@@ -20,6 +20,18 @@
   animation: marquee-right linear infinite;
 }
 
+/* Slider fade — used by paginated content sliders when changing pages. */
+@keyframes slider-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slider-fade {
+  animation: slider-fade-up 350ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slider-fade { animation: none; }
+}
+
 /* Fade-in grid — tiles start hidden at CSS parse time (before JS).
    The :not(.fade-grid-done) lets JS hand control back to Tailwind's hover styles
    once the entry animation has finished. */

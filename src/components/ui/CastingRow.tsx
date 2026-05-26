@@ -93,8 +93,8 @@ export function CastingRow({ data }: { data: CastingRowData }) {
 
   return (
     <div className="border-b border-dotted border-cream-border dark:border-warm-700 py-3 sm:py-3 px-1.5">
-      {/* Header row: poster | year (desktop) | title + inline badge + sub */}
-      <div className="grid grid-cols-[48px_1fr] sm:grid-cols-[48px_56px_1fr] gap-3 items-start">
+      {/* Header row: poster | title + inline badge + year + sub */}
+      <div className="grid grid-cols-[48px_1fr] gap-3 items-start">
         {/* Poster */}
         <Link
           href={`/titles/${tg.titleId}`}
@@ -112,12 +112,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
           )}
         </Link>
 
-        {/* Year (desktop only) */}
-        <span className="hidden sm:inline font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums pt-1 whitespace-nowrap">
-          {yearText}
-        </span>
-
-        {/* Title + inline badge + sub */}
+        {/* Title + inline badge + year + sub */}
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Link
@@ -127,9 +122,11 @@ export function CastingRow({ data }: { data: CastingRowData }) {
               {tg.title.name}
             </Link>
             <TitleBadge type={tg.title.titleType} />
-            <span className="sm:hidden font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums">
-              {yearText}
-            </span>
+            {yearText && (
+              <span className="basis-full sm:basis-auto font-serif font-bold italic text-[13px] text-warm-600 dark:text-warm-500 tabular-nums">
+                {yearText}
+              </span>
+            )}
           </div>
           {subLine && (
             <span className="block mt-1 text-[13px] text-warm-600 dark:text-warm-500 font-sans font-normal leading-[1.45]">

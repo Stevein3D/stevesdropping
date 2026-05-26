@@ -216,13 +216,17 @@ export default async function TitlesPage({
 
   const isNameSort = sort === '' || sort === 'name_desc'
 
-  // When searching, include episodes that match so we can show the indicator.
+  // When searching, fetch the first matching episode (for the single-match
+  // display) plus a true count of all matches (for the "N matching episodes"
+  // indicator — array length would cap at `take` and undercount).
+  const episodeWhere = search
+    ? { episodeTitle: { contains: search, mode: 'insensitive' as const } }
+    : { id: { lt: 0 } }
+
   const episodeSelect = {
-    where: search
-      ? { episodeTitle: { contains: search, mode: 'insensitive' as const } }
-      : { id: { lt: 0 } }, // never matches — avoids fetching all episodes when not searching
+    where: episodeWhere,
     select: { id: true, season: true, episodeNumber: true, episodeTitle: true },
-    take: 3,
+    take: 1,
   }
 
   const select = {
@@ -235,6 +239,7 @@ export default async function TitlesPage({
     updatedAt: true,
     titleType: true,
     episodes: episodeSelect,
+    _count: { select: { episodes: { where: episodeWhere } } },
   }
 
   const [total, titles, letterPages] = await Promise.all([
@@ -331,20 +336,21 @@ export default async function TitlesPage({
         {titles.map((title) => {
           const castingSummary = (castingSummaries.get(title.id) ?? []).join(' • ') || null
           const matchingEpisodes = title.episodes
+          const matchingEpisodeCount = title._count.episodes
           const yearText = [title.year, title.endDate ? new Date(title.endDate).getUTCFullYear() : null]
             .filter(Boolean)
             .join(' - ')
 
           let episodeIndicator: string | null = null
-          if (search && matchingEpisodes.length > 0) {
-            if (matchingEpisodes.length === 1) {
+          if (search && matchingEpisodeCount > 0) {
+            if (matchingEpisodeCount === 1 && matchingEpisodes[0]) {
               const ep = matchingEpisodes[0]
               const code = ep.season != null && ep.episodeNumber != null
                 ? `S${ep.season}E${ep.episodeNumber}`
                 : null
               episodeIndicator = [code, ep.episodeTitle].filter(Boolean).join(' · ')
             } else {
-              episodeIndicator = `${matchingEpisodes.length} matching episodes`
+              episodeIndicator = `${matchingEpisodeCount} matching episodes`
             }
           }
 
