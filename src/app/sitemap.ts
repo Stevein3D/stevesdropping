@@ -15,9 +15,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const [titles, people, characters] = await Promise.all([
-      prisma.title.findMany({ select: { id: true, updatedAt: true } }),
-      prisma.person.findMany({ select: { id: true, updatedAt: true } }),
-      prisma.character.findMany({ select: { id: true, updatedAt: true } }),
+      prisma.title.findMany({ where: { castings: { some: {} } }, select: { id: true, updatedAt: true } }),
+      prisma.person.findMany({ where: { castings: { some: {} } }, select: { id: true, updatedAt: true } }),
+      prisma.character.findMany({ where: { castings: { some: {} } }, select: { id: true, updatedAt: true } }),
     ])
 
     const titleRoutes: MetadataRoute.Sitemap = titles.map((t) => ({
