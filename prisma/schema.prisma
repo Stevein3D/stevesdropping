@@ -172,5 +172,7 @@ model ScrapeResult {
   reviewedAt     DateTime?
   updatedAt      DateTime  @updatedAt
 
+  @@index([status])
+  @@index([entityType, status])
   @@map("scrape_results")
 }
