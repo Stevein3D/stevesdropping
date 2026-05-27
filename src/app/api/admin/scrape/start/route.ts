@@ -50,7 +50,15 @@ export async function POST(request: NextRequest) {
         take: 50,
       })
 
-      await runConcurrent(people, 5, async (person) => {
+      const existingPending = await prisma.scrapeResult.findMany({
+        where: { entityType: 'person', entityId: { in: people.map(p => p.id) }, status: 'pending' },
+        select: { entityId: true },
+      })
+      const pendingPersonIds = new Set(existingPending.map(r => r.entityId))
+      const toScrapePeople = people.filter(p => !pendingPersonIds.has(p.id))
+      skipped += people.length - toScrapePeople.length
+
+      await runConcurrent(toScrapePeople, 5, async (person) => {
         const output = await scrapePerson(person)
         if (!output) {
           await prisma.scrapeResult.create({
@@ -77,7 +85,15 @@ export async function POST(request: NextRequest) {
         take: 50,
       })
 
-      await runConcurrent(titles, 5, async (title) => {
+      const existingPendingTitles = await prisma.scrapeResult.findMany({
+        where: { entityType: 'title', entityId: { in: titles.map(t => t.id) }, status: 'pending' },
+        select: { entityId: true },
+      })
+      const pendingTitleIds = new Set(existingPendingTitles.map(r => r.entityId))
+      const toScrapeTitles = titles.filter(t => !pendingTitleIds.has(t.id))
+      skipped += titles.length - toScrapeTitles.length
+
+      await runConcurrent(toScrapeTitles, 5, async (title) => {
         const output = await scrapeTitle(title)
         if (!output) {
           await prisma.scrapeResult.create({

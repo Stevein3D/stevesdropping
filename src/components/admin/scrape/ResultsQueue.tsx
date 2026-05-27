@@ -3,6 +3,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { DiffRow } from './DiffRow'
 import type { FieldDiff } from '@/lib/scrapers/types'
 
+type SavedBatch = { timestamp: number; resultIds: number[] }
+
+const STORAGE_KEY = 'scrape-export-batches'
+
+function loadBatches(): SavedBatch[] {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') } catch { return [] }
+}
+
+function persistBatch(ids: number[]): SavedBatch[] {
+  const updated = [{ timestamp: Date.now(), resultIds: ids }, ...loadBatches()].slice(0, 3)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+  return updated
+}
+
 type ScrapeResultRow = {
   id: number
   entityType: string
@@ -35,6 +49,7 @@ export function ResultsQueue() {
   const [fieldChoices, setFieldChoices]     = useState<Record<number, FieldChoices>>({})
   const [actionLoading, setActionLoading]   = useState<number | null>(null)
   const [exportIds, setExportIds]           = useState<number[]>([])
+  const [savedBatches, setSavedBatches]     = useState<SavedBatch[]>([])
 
   const fetchResults = useCallback(async () => {
     setLoading(true)
@@ -48,6 +63,7 @@ export function ResultsQueue() {
   }, [tab])
 
   useEffect(() => { fetchResults() }, [fetchResults])
+  useEffect(() => { setSavedBatches(loadBatches()) }, [])
 
   function handleFieldChange(resultId: number, fieldName: string, choice: 'keep' | 'accept' | 'edit', editedValue: string) {
     setFieldChoices(prev => ({
@@ -81,19 +97,24 @@ export function ResultsQueue() {
     fetchResults()
   }
 
-  async function handleExport() {
+  async function downloadExport(resultIds: number[], filename: string) {
     const res = await fetch('/api/admin/scrape/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resultIds: exportIds }),
+      body: JSON.stringify({ resultIds }),
     })
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `scrape-export-${Date.now()}.xlsx`
+    a.download = filename
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  async function handleExport() {
+    await downloadExport(exportIds, `scrape-export-${Date.now()}.xlsx`)
+    setSavedBatches(persistBatch(exportIds))
     setExportIds([])
   }
 
@@ -126,6 +147,25 @@ export function ResultsQueue() {
           >
             Export XLSX
           </button>
+        </div>
+      )}
+
+      {savedBatches.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-warm-500 uppercase tracking-wide">Recent exports</p>
+          {savedBatches.map(batch => (
+            <div key={batch.timestamp} className="flex items-center justify-between bg-cream-card dark:bg-warm-50/5 border border-cream-subtle dark:border-warm-700 rounded-lg px-4 py-2.5">
+              <p className="text-sm text-warm-600 dark:text-warm-500">
+                {new Date(batch.timestamp).toLocaleString()} · <span className="text-steve font-medium">{batch.resultIds.length}</span> rows
+              </p>
+              <button
+                onClick={() => downloadExport(batch.resultIds, `scrape-export-${batch.timestamp}.xlsx`)}
+                className="text-xs border border-cream-border dark:border-warm-700 text-warm-600 dark:text-warm-500 px-3 py-1 rounded hover:border-steve transition-colors"
+              >
+                Re-download
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
