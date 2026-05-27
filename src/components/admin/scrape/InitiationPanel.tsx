@@ -11,16 +11,23 @@ export function InitiationPanel({ onComplete }: Props) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [idInput, setIdInput] = useState('')
 
   async function handleStart() {
     setLoading(true)
     setResult(null)
     setError(null)
     try {
+      const parsedIds = idInput.trim()
+        ? idInput.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+        : []
+      const body = parsedIds.length
+        ? { entityType, entityIds: parsedIds }
+        : { entityType, filter }
       const res = await fetch('/api/admin/scrape/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entityType, filter }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!data.ok) throw new Error(data.error)
@@ -75,6 +82,18 @@ export function InitiationPanel({ onComplete }: Props) {
           </div>
         </div>
       </div>
+
+      <div className="space-y-1">
+          <p className="text-xs text-warm-600 dark:text-warm-500 tracking-wide uppercase">Specific IDs <span className="normal-case">(optional)</span></p>
+          <input
+            type="text"
+            value={idInput}
+            onChange={e => setIdInput(e.target.value)}
+            placeholder="e.g. 10202, 10544, 10203"
+            className="w-full max-w-xs text-sm border border-cream-border dark:border-warm-700 rounded-lg px-3 py-1.5 bg-cream dark:bg-warm-800 text-warm-900 dark:text-warm-200 placeholder:text-warm-500 focus:outline-none focus:border-steve"
+          />
+          {idInput.trim() && <p className="text-xs text-warm-500">Filter ignored when IDs are specified</p>}
+        </div>
 
       <p className="text-xs text-warm-500">Max 50 records per batch. Scrapes run in parallel.</p>
 

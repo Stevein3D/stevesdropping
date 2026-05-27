@@ -174,6 +174,8 @@ export function ResultsQueue() {
                       key={fieldName}
                       fieldName={fieldName}
                       diff={diff}
+                      entityType={result.entityType}
+                      entityId={result.entityId}
                       onChange={(f, choice, editedValue) => handleFieldChange(result.id, f, choice, editedValue)}
                     />
                   ))}
