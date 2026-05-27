@@ -1,0 +1,2 @@
+-- This is a baseline migration for the existing schema
+-- No-op: tables are already created

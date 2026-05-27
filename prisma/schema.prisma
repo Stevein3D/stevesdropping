@@ -159,3 +159,18 @@ model Casting {
   @@unique([personId, characterId, titleId, episodeId])
   @@map("castings")
 }
+
+model ScrapeResult {
+  id             Int       @id @default(autoincrement())
+  entityType     String    // "person" | "title"
+  entityId       Int
+  status         String    @default("pending") // "pending" | "approved" | "rejected" | "not_found"
+  source         String    // "wikipedia" | "tmdb"
+  diffs          Json      // { fieldName: { current: string|null, scraped: string|null, edited: string|null } }
+  approvedFields String[]  @default([])
+  scrapedAt      DateTime  @default(now())
+  reviewedAt     DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@map("scrape_results")
+}
