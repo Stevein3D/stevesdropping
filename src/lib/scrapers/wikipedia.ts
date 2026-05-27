@@ -16,7 +16,8 @@ async function fetchSummary(pageTitle: string): Promise<WikiSummary | null> {
     headers: { 'User-Agent': 'stevesdropping/1.0 (stevein3d@gmail.com)' },
   })
   if (!res.ok) return null
-  const data = await res.json() as WikiSummary
+  const data = await res.json().catch(() => null) as WikiSummary | null
+  if (!data) return null
   // disambiguation pages have type "disambiguation" — skip them
   if (data.type === 'disambiguation') return null
   return data
@@ -33,8 +34,8 @@ async function searchPageTitle(name: string): Promise<string | null> {
   })
   const res = await fetch(`${SEARCH_BASE}?${params}`)
   if (!res.ok) return null
-  const data = await res.json() as { query: { search: { title: string }[] } }
-  return data.query.search[0]?.title ?? null
+  const data = await res.json().catch(() => null) as { query?: { search?: { title: string }[] } } | null
+  return data?.query?.search?.[0]?.title ?? null
 }
 
 function diff(current: string | null | undefined, scraped: string | null): FieldDiff {
