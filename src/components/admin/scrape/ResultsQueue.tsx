@@ -97,6 +97,19 @@ export function ResultsQueue() {
     fetchResults()
   }
 
+  async function handleRevert(id: number) {
+    setActionLoading(id)
+    await fetch(`/api/admin/scrape/results/${id}/revert`, { method: 'PATCH' })
+    setActionLoading(null)
+    fetchResults()
+  }
+
+  function getInitialChoice(result: ScrapeResultRow, fieldName: string): 'keep' | 'accept' | 'edit' {
+    if (result.status !== 'approved') return 'accept'
+    if (!result.approvedFields.includes(fieldName)) return 'keep'
+    return result.diffs[fieldName]?.edited != null ? 'edit' : 'accept'
+  }
+
   async function downloadExport(resultIds: number[], filename: string) {
     const res = await fetch('/api/admin/scrape/export', {
       method: 'POST',
@@ -186,24 +199,34 @@ export function ResultsQueue() {
                   <p className="text-sm font-medium text-warm-900 dark:text-warm-200">{result.entityName ?? `${result.entityType} #${result.entityId}`}</p>
                   <p className="text-xs text-warm-500 mt-0.5 capitalize">{result.entityType} · {result.source} · {result.diffCount} field{result.diffCount !== 1 ? 's' : ''}</p>
                 </div>
-                {result.status === 'pending' && (
-                  <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                  {result.status === 'pending' ? (
+                    <>
+                      <button
+                        onClick={() => handleApprove(result)}
+                        disabled={actionLoading === result.id}
+                        className="text-xs bg-steve hover:bg-steve-hover text-cream px-3 py-1 rounded transition-colors disabled:opacity-40"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        onClick={() => handleReject(result.id)}
+                        disabled={actionLoading === result.id}
+                        className="text-xs border border-cream-border dark:border-warm-700 text-warm-600 dark:text-warm-500 px-3 py-1 rounded hover:border-steve transition-colors disabled:opacity-40"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  ) : (result.status === 'approved' || result.status === 'rejected') && (
                     <button
-                      onClick={() => handleApprove(result)}
-                      disabled={actionLoading === result.id}
-                      className="text-xs bg-steve hover:bg-steve-hover text-cream px-3 py-1 rounded transition-colors disabled:opacity-40"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      onClick={() => handleReject(result.id)}
+                      onClick={() => handleRevert(result.id)}
                       disabled={actionLoading === result.id}
                       className="text-xs border border-cream-border dark:border-warm-700 text-warm-600 dark:text-warm-500 px-3 py-1 rounded hover:border-steve transition-colors disabled:opacity-40"
                     >
-                      Reject
+                      Add to pending
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
                 <span className="text-xs text-warm-500">{expandedId === result.id ? '▲' : '▼'}</span>
               </div>
 
@@ -216,6 +239,7 @@ export function ResultsQueue() {
                       diff={diff}
                       entityType={result.entityType}
                       entityId={result.entityId}
+                      initialChoice={getInitialChoice(result, fieldName)}
                       onChange={(f, choice, editedValue) => handleFieldChange(result.id, f, choice, editedValue)}
                     />
                   ))}

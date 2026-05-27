@@ -9,6 +9,7 @@ type Props = {
   diff: FieldDiff
   entityType: string
   entityId: number
+  initialChoice?: FieldChoice
   onChange: (fieldName: string, choice: FieldChoice, editedValue: string) => void
 }
 
@@ -29,9 +30,11 @@ function isUrl(v: string | null): v is string {
   return !!v && (v.startsWith('http://') || v.startsWith('https://'))
 }
 
-export function DiffRow({ fieldName, diff, entityType, entityId, onChange }: Props) {
-  const [choice, setChoice] = useState<FieldChoice>('accept')
-  const [editValue, setEditValue] = useState(diff.scraped ?? '')
+export function DiffRow({ fieldName, diff, entityType, entityId, initialChoice, onChange }: Props) {
+  const [choice, setChoice] = useState<FieldChoice>(initialChoice ?? 'accept')
+  const [editValue, setEditValue] = useState(
+    initialChoice === 'edit' && diff.edited ? diff.edited : (diff.scraped ?? '')
+  )
   const [scrapedUrl, setScrapedUrl] = useState(diff.scraped)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
