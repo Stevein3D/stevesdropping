@@ -11,6 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin" className="hover:text-steve transition-colors">Dashboard</Link>
             <Link href="/admin/import" className="hover:text-steve transition-colors">Import Data</Link>
             <Link href="/admin/images" className="hover:text-steve transition-colors">Images</Link>
+            <Link href="/admin/scrape" className="hover:text-steve transition-colors">Scrape</Link>
           </div>
           <LogoutButton />
         </div>
