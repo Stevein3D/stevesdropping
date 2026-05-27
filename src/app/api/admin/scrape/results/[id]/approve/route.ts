@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { ScrapeResultDiffs } from '@/lib/scrapers/types'
 
+const INT_FIELDS = new Set(['year', 'runtime', 'birthYear', 'deathYear'])
+const DATE_FIELDS = new Set(['birthDate', 'deathDate', 'releaseDate'])
+
+function coerce(field: string, value: string | null): unknown {
+  if (value === null || value === '') return null
+  if (INT_FIELDS.has(field)) { const n = parseInt(value); return isNaN(n) ? null : n }
+  if (DATE_FIELDS.has(field)) { const d = new Date(value); return isNaN(d.getTime()) ? null : d }
+  return value
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -25,8 +35,8 @@ export async function PATCH(
     for (const field of approvedFields) {
       const d = diffs[field]
       if (!d) continue
-      const value = edits?.[field] ?? d.scraped
-      updateData[field] = value
+      const raw = edits?.[field] ?? d.scraped
+      updateData[field] = coerce(field, raw)
     }
 
     if (Object.keys(updateData).length > 0) {
