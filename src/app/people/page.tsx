@@ -27,6 +27,18 @@ export const metadata = {
 
 const PAGE_SIZE = 45
 
+// Curated labels — any personType not listed here falls back to humanizeType().
+const PERSON_TYPE_LABELS: Record<string, string> = {
+  actor: 'Actor', artist: 'Artist', author: 'Author', celebrity: 'Celebrity',
+  comedian: 'Comedian', composer: 'Composer', director: 'Director',
+  filmmaker: 'Filmmaker', inventor: 'Inventor', musician: 'Musician',
+  athlete: 'Athlete', writer: 'Writer', other: 'Other',
+}
+
+function humanizeType(raw: string): string {
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 function formatDate(date: Date): string {
@@ -157,7 +169,7 @@ export default async function PeoplePage({
     _count: { select: { castings: true } },
   } as const
 
-  const [total, people, letterPages] = await Promise.all([
+  const [total, people, letterPages, typeRows] = await Promise.all([
     prisma.person.count({ where }),
     isNameSort
       ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
@@ -175,7 +187,15 @@ export default async function PeoplePage({
     isNameSort
       ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
+    prisma.person.findMany({
+      distinct: ['personType'],
+      select: { personType: true },
+    }),
   ])
+
+  const typeOptions = typeRows
+    .map(r => [r.personType, PERSON_TYPE_LABELS[r.personType] ?? humanizeType(r.personType)] as [string, string])
+    .sort(([, a], [, b]) => a.localeCompare(b))
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -202,22 +222,22 @@ export default async function PeoplePage({
       {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <SearchInput placeholder="Search by name…" />
-        <div className="relative">
-          <FilterSelect
-            paramName="type"
-            className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-4 pr-9 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
-          >
-            <option value="">All types</option>
-            <option value="actor">Actor</option>
-            <option value="celebrity">Celebrity</option>
-            <option value="musician">Musician</option>
-            <option value="athlete">Athlete</option>
-            <option value="other">Other</option>
-          </FilterSelect>
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
+        {typeOptions.length > 0 && (
+          <div className="relative">
+            <FilterSelect
+              paramName="type"
+              className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-4 pr-9 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
+            >
+              <option value="">All types</option>
+              {typeOptions.map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </FilterSelect>
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        )}
         <div className="relative">
           <FilterSelect
             paramName="sort"

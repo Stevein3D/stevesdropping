@@ -27,6 +27,19 @@ export const metadata = {
 
 const PAGE_SIZE = 45
 
+// Curated labels — any characterType not listed here falls back to humanizeType().
+const CHARACTER_TYPE_LABELS: Record<string, string> = {
+  protagonist: 'Protagonist',
+  supporting:  'Supporting',
+  antagonist:  'Antagonist',
+  cameo:       'Cameo',
+  other:       'Other',
+}
+
+function humanizeType(raw: string): string {
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 type SortOption = 'name_asc' | 'name_desc' | 'appearances' | 'recent'
 
 const SORT_OPTIONS: { value: SortOption | ''; label: string }[] = [
@@ -146,7 +159,7 @@ export default async function CharactersPage({
     _count: { select: { castings: true } },
   }
 
-  const [total, characters, letterPages] = await Promise.all([
+  const [total, characters, letterPages, typeRows] = await Promise.all([
     prisma.character.count({ where }),
     isNameSort
       ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
@@ -164,7 +177,15 @@ export default async function CharactersPage({
     isNameSort
       ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
+    prisma.character.findMany({
+      distinct: ['characterType'],
+      select: { characterType: true },
+    }),
   ])
+
+  const typeOptions = typeRows
+    .map(r => [r.characterType, CHARACTER_TYPE_LABELS[r.characterType] ?? humanizeType(r.characterType)] as [string, string])
+    .sort(([, a], [, b]) => a.localeCompare(b))
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -189,22 +210,22 @@ export default async function CharactersPage({
       {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <SearchInput placeholder="Search characters…" />
-        <div className="relative">
-          <FilterSelect
-            paramName="type"
-            className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-4 pr-9 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
-          >
-            <option value="">All types</option>
-            <option value="protagonist">Protagonist</option>
-            <option value="supporting">Supporting</option>
-            <option value="antagonist">Antagonist</option>
-            <option value="cameo">Cameo</option>
-            <option value="other">Other</option>
-          </FilterSelect>
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
+        {typeOptions.length > 0 && (
+          <div className="relative">
+            <FilterSelect
+              paramName="type"
+              className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-4 pr-9 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
+            >
+              <option value="">All types</option>
+              {typeOptions.map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </FilterSelect>
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        )}
         <div className="relative">
           <FilterSelect
             paramName="sort"

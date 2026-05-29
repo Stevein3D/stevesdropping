@@ -11,50 +11,17 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
-enum PersonType {
-  actor
-  artist
-  author
-  celebrity
-  comedian
-  composer
-  director
-  filmmaker
-  inventor
-  musician
-  athlete
-  writer
-  other
-}
-
-enum CharacterType {
-  protagonist
-  supporting
-  antagonist
-  cameo
-  other
-}
-
-enum TitleType {
-  film
-  tv_series
-  tv_movie
-  tv_miniseries
-  animated
-  short
-  documentary
-  video
-  other
-}
-
 // ─── Models ───────────────────────────────────────────────────────────────────
+// personType, characterType, and titleType are free-form strings (not enums)
+// so the data drives the available values rather than the schema. Import
+// normalizes raw input (lowercase + underscores). Display layers (e.g. labels,
+// badges) curate well-known values and fall back to a humanized rendering for
+// anything new.
 
 model Person {
   id                  Int        @id @default(autoincrement())
   name                String
-  personType          PersonType @default(actor)
+  personType          String     @default("actor")
   prefix              String?
   firstName           String?
   middleName          String?
@@ -84,7 +51,7 @@ model Person {
 model Character {
   id            Int           @id @default(autoincrement())
   name          String
-  characterType CharacterType @default(supporting)
+  characterType String        @default("supporting")
   description   String?
   imageUrl      String?
   featured      Boolean       @default(false)
@@ -103,7 +70,7 @@ model Title {
   year        Int?
   releaseDate DateTime?
   endDate     DateTime?
-  titleType   TitleType @default(film)
+  titleType   String    @default("film")
   genre       String?
   description String?
   runtime     Int?      // in minutes

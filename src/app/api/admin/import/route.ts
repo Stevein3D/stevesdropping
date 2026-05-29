@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as xlsx from 'xlsx'
 import { get } from '@vercel/blob'
 import { prisma } from '@/lib/prisma'
-import { PersonType, CharacterType, TitleType } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 // Imports do many sequential upserts; bump from the 10s default. Capped to the
@@ -111,52 +110,16 @@ function stripYear(name: string | null): string | null {
   return name.replace(/\s*\(\d{4}(?:-\d{4})?\)\s*$/, '').trim()
 }
 
-const TITLE_TYPE_MAP: Record<string, TitleType> = {
-  'Film':          'film',
-  'TV Series':     'tv_series',
-  'TV Movie':      'tv_movie',
-  'TV Miniseries': 'tv_miniseries',
-  'Animated':      'animated',
-  'Short':         'short',
-  'Documentary':   'documentary',
-  'Video':         'video',
-}
-
-function toTitleType(raw: string): TitleType {
-  return TITLE_TYPE_MAP[raw] ?? 'other'
-}
-
-const PERSON_TYPE_MAP: Record<string, PersonType> = {
-  'actor':              'actor',
-  'artist':             'artist',
-  'author':             'author',
-  'celebrity':          'celebrity',
-  'comedian':           'comedian',
-  'composer':           'composer',
-  'director':           'director',
-  'filmmaker':          'filmmaker',
-  'inventor':           'inventor',
-  'musician':           'musician',
-  'writer':             'writer',
-  // sports → athlete
-  'athlete':            'athlete',
-  'baseball player':    'athlete',
-  'basketball player':  'athlete',
-  'cricketer':          'athlete',
-  'football player':    'athlete',
-  'snooker player':     'athlete',
-  // catch-all
-  'character':          'other',
-  'conservationist':    'other',
-  'cosmologist':        'other',
-}
-
-function toPersonType(value: string | null): PersonType {
-  return PERSON_TYPE_MAP[value?.toLowerCase() ?? ''] ?? 'other'
-}
-
-function toEnum<T extends string>(value: string | null, fallback: T): T {
-  return ((value ?? fallback) as T)
+// Normalize free-form type strings to a canonical slug ("TV Series" → "tv_series").
+// Returns the fallback only when the input is null/empty/whitespace; unknown
+// values pass through as their normalized form so new types appear automatically.
+function normalizeType(value: string | null | undefined, fallback: string): string {
+  const trimmed = (value ?? '').trim()
+  if (!trimmed) return fallback
+  return trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
 }
 
 // ─── Route ──────────────────────────────────────────────────────────────────
@@ -217,7 +180,7 @@ export async function POST(request: NextRequest) {
       try {
         const data = {
           name:               row['Name'],
-          personType:         toPersonType(row['Person Type']),
+          personType:         normalizeType(row['Person Type'], 'actor'),
           prefix:             row['Prefix'],
           firstName:          row['First Name'],
           middleName:         row['Middle Name'],
@@ -253,7 +216,7 @@ export async function POST(request: NextRequest) {
       try {
         const data = {
           name:          row['Character Name'],
-          characterType: toEnum<CharacterType>(row['Character Type'], 'other'),
+          characterType: normalizeType(row['Character Type'], 'supporting'),
           description:   row['Description'],
         }
         const exists = await prisma.character.findUnique({ where: { id }, select: { id: true } })
@@ -289,7 +252,7 @@ export async function POST(request: NextRequest) {
           year,
           releaseDate,
           endDate,
-          titleType:   toTitleType(row['Title Type']),
+          titleType:   normalizeType(row['Title Type'], 'film'),
           genre:       row['Genre'],
           description: row['Title Description'],
           runtime:     (rawRuntime != null && !isNaN(Number(rawRuntime))) ? Number(rawRuntime) : null,
