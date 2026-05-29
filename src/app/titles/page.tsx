@@ -96,12 +96,14 @@ const SORT_OPTIONS: { value: SortOption | ''; label: string }[] = [
 async function getNameSortedIds(
   search: string,
   type: string | undefined,
+  genre: string | undefined,
   dir: 'ASC' | 'DESC',
   page: number,
 ): Promise<number[]> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
   if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
+  if (genre)  conditions.push(Prisma.sql`t.genre ILIKE ${'%' + genre + '%'}`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -133,11 +135,13 @@ async function getNameSortedIds(
 async function getLetterPageMap(
   search: string,
   type: string | undefined,
+  genre: string | undefined,
   dir: 'ASC' | 'DESC',
 ): Promise<Record<string, number>> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
   if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
+  if (genre)  conditions.push(Prisma.sql`t.genre ILIKE ${'%' + genre + '%'}`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -199,13 +203,14 @@ function getOrderBy(sort: string) {
 export default async function TitlesPage({
   searchParams,
 }: {
-  searchParams: { search?: string; type?: string; sort?: string; page?: string }
+  searchParams: { search?: string; type?: string; genre?: string; sort?: string; page?: string }
 }) {
-  const { search = '', type, sort = '' } = searchParams
+  const { search = '', type, genre, sort = '' } = searchParams
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
 
   const where = {
     ...(type && { titleType: type as any }),
+    ...(genre && { genre: { contains: genre, mode: 'insensitive' as const } }),
     ...(search && {
       OR: [
         { name: { contains: search, mode: 'insensitive' as const } },
@@ -242,10 +247,10 @@ export default async function TitlesPage({
     _count: { select: { episodes: { where: episodeWhere } } },
   }
 
-  const [total, titles, letterPages] = await Promise.all([
+  const [total, titles, letterPages, genreRows] = await Promise.all([
     prisma.title.count({ where }),
     isNameSort
-      ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
+      ? getNameSortedIds(search, type, genre, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
           if (ids.length === 0) return []
           const rows = await prisma.title.findMany({ where: { id: { in: ids } }, select })
           const byId = new Map(rows.map(t => [t.id, t]))
@@ -258,9 +263,22 @@ export default async function TitlesPage({
           take: PAGE_SIZE,
         }),
     isNameSort
-      ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
+      ? getLetterPageMap(search, type, genre, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
+    prisma.title.findMany({
+      where: { genre: { not: null } },
+      distinct: ['genre'],
+      select: { genre: true },
+    }),
   ])
+
+  // `genre` is comma-separated multi-value in some rows ("Comedy, Drama"); split + dedupe.
+  const genreOptions = Array.from(new Set(
+    genreRows
+      .map(r => r.genre ?? '')
+      .flatMap(g => g.split(',').map(s => s.trim()))
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b))
 
   const castingSummaries = await getCastingSummaries(titles.map(t => t.id))
 
@@ -303,6 +321,22 @@ export default async function TitlesPage({
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
+        {genreOptions.length > 0 && (
+          <div className="relative">
+            <FilterSelect
+              paramName="genre"
+              className="appearance-none bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-lg pl-4 pr-9 py-2 text-sm text-warm-900 dark:text-warm-200 focus:outline-none focus:border-steve"
+            >
+              <option value="">All genres</option>
+              {genreOptions.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </FilterSelect>
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-warm-600 dark:text-warm-500" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        )}
         <div className="relative">
           <FilterSelect
             paramName="sort"
@@ -319,7 +353,7 @@ export default async function TitlesPage({
         {isNameSort && Object.keys(letterPages).length > 0 && (
           <LetterJumper letterPages={letterPages} basePath="/titles" />
         )}
-        {(search || type || sort) && (
+        {(search || type || genre || sort) && (
           <Link
             href="/titles"
             className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
