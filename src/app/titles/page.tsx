@@ -383,7 +383,7 @@ export default async function TitlesPage({
       <Pagination page={page} totalPages={totalPages} basePath="/titles" />
 
       {/* Grid */}
-      <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <FadeInGrid key={`${search}-${type}-${genre ?? ''}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {titles.map((title) => {
           const castingSummary = (castingSummaries.get(title.id) ?? []).join(' • ') || null
           const matchingEpisodes = title.episodes
