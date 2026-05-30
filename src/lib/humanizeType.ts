@@ -4,7 +4,7 @@ const UPPERCASE_TOKENS = new Set(['tv'])
 
 export function humanizeType(raw: string): string {
   return raw
-    .split('_')
+    .split(/[_\s]+/)
     .filter(Boolean)
     .map(word => {
       const lower = word.toLowerCase()
