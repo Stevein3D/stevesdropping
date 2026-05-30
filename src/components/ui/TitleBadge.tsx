@@ -1,3 +1,5 @@
+import { humanizeType } from '@/lib/humanizeType'
+
 const BADGE_STYLES: Record<string, string> = {
   film:           'bg-[#c94a1a] text-[#fdf6e3]',
   tv_series:      'bg-[#7a5230] text-[#fdf6e3]',
@@ -23,7 +25,7 @@ const BADGE_LABELS: Record<string, string> = {
 export function TitleBadge({ type }: { type: string }) {
   return (
     <span className={`text-[10px] px-2 py-0.5 rounded tracking-wide whitespace-nowrap ${BADGE_STYLES[type] ?? BADGE_STYLES.other}`}>
-      {BADGE_LABELS[type] ?? type}
+      {BADGE_LABELS[type] ?? humanizeType(type)}
     </span>
   )
 }

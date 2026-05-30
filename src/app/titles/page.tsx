@@ -5,6 +5,7 @@ import { TitleBadge } from '@/components/ui/TitleBadge'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { humanizeType } from '@/lib/humanizeType'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { LetterJumper } from '@/components/ui/LetterJumper'
@@ -82,9 +83,6 @@ const TYPE_LABELS: Record<string, string> = {
   other:         'Other',
 }
 
-function humanizeType(raw: string): string {
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
 
 type SortOption = 'name_desc' | 'newest' | 'oldest' | 'appearances' | 'rating' | 'recent'
 

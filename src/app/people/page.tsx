@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { humanizeType } from '@/lib/humanizeType'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { LetterJumper } from '@/components/ui/LetterJumper'
@@ -35,9 +36,6 @@ const PERSON_TYPE_LABELS: Record<string, string> = {
   athlete: 'Athlete', writer: 'Writer', other: 'Other',
 }
 
-function humanizeType(raw: string): string {
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
