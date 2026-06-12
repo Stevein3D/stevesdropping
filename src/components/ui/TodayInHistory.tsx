@@ -105,11 +105,11 @@ export function TodayInHistory({ events, dateLabel }: { events: HistoryEvent[]; 
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
+      <div className="flex items-baseline gap-3 mb-4">
+        <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
           Today in Steve History
         </h2>
-        <span className="text-sm font-medium text-warm-600 dark:text-warm-500">{dateLabel}</span>
+        <span className="text-[22px] font-serif font-bold text-steve">{dateLabel}</span>
       </div>
 
       {events.length === 0 ? (

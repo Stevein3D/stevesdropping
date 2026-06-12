@@ -47,7 +47,7 @@ function EventCard({ event }: { event: HistoryEvent }) {
         </div>
         <p className="text-[11px] text-warm-600 dark:text-warm-500">
           {event.year}
-          {event.yearsAgo > 0 && ` · ${event.yearsAgo} yrs ago`}
+          {event.yearsAgo > 0 && ` · ${event.yearsAgo} ${event.yearsAgo === 1 ? 'yr' : 'yrs'} ago`}
         </p>
       </div>
     </Link>
@@ -104,7 +104,7 @@ export function SteveOnADate() {
   return (
     <section className="pb-8 border-b border-cream-border dark:border-warm-700 mb-8">
       <div className="mb-4">
-        <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">
+        <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
           Date a Steve
         </h2>
         <p className="text-sm text-warm-600 dark:text-warm-500 mt-0.5">

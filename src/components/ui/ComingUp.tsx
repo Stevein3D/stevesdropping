@@ -13,7 +13,7 @@ export function ComingUp({ events, weekLabel }: { events: HistoryEvent[]; weekLa
   return (
     <section className="pb-8 border-b border-cream-border dark:border-warm-700 mb-8">
       <div className="flex items-baseline justify-between mb-3">
-        <h2 className="font-serif text-xl font-bold text-warm-900 dark:text-warm-200">Coming Up</h2>
+        <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">Coming Up</h2>
         <span className="text-sm font-medium text-warm-600 dark:text-warm-500">{weekLabel}</span>
       </div>
 
