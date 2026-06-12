@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
-import { humanizeType } from '@/lib/humanizeType'
+import { StevesToggle } from '@/components/ui/StevesToggle'
+import { splitPersonTypes, personTypeLabel, personTypeFilter, STEVE_NAMES } from '@/lib/personTypes'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { LetterJumper } from '@/components/ui/LetterJumper'
@@ -27,14 +28,6 @@ export const metadata = {
 }
 
 const PAGE_SIZE = 45
-
-// Curated labels — any personType not listed here falls back to humanizeType().
-const PERSON_TYPE_LABELS: Record<string, string> = {
-  actor: 'Actor', artist: 'Artist', author: 'Author', celebrity: 'Celebrity',
-  comedian: 'Comedian', composer: 'Composer', director: 'Director',
-  filmmaker: 'Filmmaker', inventor: 'Inventor', musician: 'Musician',
-  athlete: 'Athlete', writer: 'Writer', other: 'Other',
-}
 
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -59,12 +52,14 @@ const SORT_OPTIONS: { value: SortOption | ''; label: string }[] = [
 async function getNameSortedIds(
   search: string,
   type: string | undefined,
+  steves: boolean,
   dir: 'ASC' | 'DESC',
   page: number,
 ): Promise<number[]> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`name ILIKE ${'%' + search + '%'}`)
-  if (type)   conditions.push(Prisma.sql`"personType"::text = ${type}`)
+  if (type)   conditions.push(Prisma.sql`${type} = ANY(string_to_array(replace("personType", ' ', ''), ','))`)
+  if (steves) conditions.push(Prisma.sql`LOWER("firstName") IN (${Prisma.join(STEVE_NAMES)})`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -74,11 +69,14 @@ async function getNameSortedIds(
   const limit     = Prisma.raw(String(PAGE_SIZE))
   const offset    = Prisma.raw(String((page - 1) * PAGE_SIZE))
 
+  // Birth year breaks ties between people with identical names (the two Steve
+  // McQueens) — always ascending, oldest first.
   const rows = await prisma.$queryRaw<{ id: number }[]>`
     SELECT id FROM persons
     ${whereClause}
     ORDER BY LOWER("lastName") ${direction} NULLS LAST,
-             LOWER("firstName") ${direction}
+             LOWER("firstName") ${direction},
+             COALESCE(EXTRACT(YEAR FROM "birthDate"), "birthYear") ASC NULLS LAST
     LIMIT ${limit} OFFSET ${offset}
   `
   return rows.map(r => Number(r.id))
@@ -89,11 +87,13 @@ async function getNameSortedIds(
 async function getLetterPageMap(
   search: string,
   type: string | undefined,
+  steves: boolean,
   dir: 'ASC' | 'DESC',
 ): Promise<Record<string, number>> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`name ILIKE ${'%' + search + '%'}`)
-  if (type)   conditions.push(Prisma.sql`"personType"::text = ${type}`)
+  if (type)   conditions.push(Prisma.sql`${type} = ANY(string_to_array(replace("personType", ' ', ''), ','))`)
+  if (steves) conditions.push(Prisma.sql`LOWER("firstName") IN (${Prisma.join(STEVE_NAMES)})`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -106,14 +106,15 @@ async function getLetterPageMap(
       SELECT
         id,
         LOWER("lastName") AS sort_key,
-        LOWER("firstName") AS name_key
+        LOWER("firstName") AS name_key,
+        COALESCE(EXTRACT(YEAR FROM "birthDate"), "birthYear") AS year_key
       FROM persons
       ${whereClause}
     ),
     numbered AS (
       SELECT
         sort_key,
-        ROW_NUMBER() OVER (ORDER BY sort_key ${direction} NULLS LAST, name_key ${direction}) AS rn
+        ROW_NUMBER() OVER (ORDER BY sort_key ${direction} NULLS LAST, name_key ${direction}, year_key ASC NULLS LAST) AS rn
       FROM ranked
     )
     SELECT
@@ -149,14 +150,16 @@ function getOrderBy(sort: string) {
 export default async function PeoplePage({
   searchParams,
 }: {
-  searchParams: { search?: string; type?: string; sort?: string; page?: string }
+  searchParams: { search?: string; type?: string; sort?: string; steves?: string; page?: string }
 }) {
   const { search = '', type, sort = '' } = searchParams
+  const steves = searchParams.steves === '1'
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
 
   const where = {
     ...(search && { name: { contains: search, mode: 'insensitive' as const } }),
-    ...(type && { personType: type as any }),
+    ...(type && personTypeFilter(type)),
+    ...(steves && { firstName: { in: STEVE_NAMES, mode: 'insensitive' as const } }),
   }
 
   const isNameSort = sort === '' || sort === 'name_desc'
@@ -170,7 +173,7 @@ export default async function PeoplePage({
   const [total, people, letterPages, typeRows] = await Promise.all([
     prisma.person.count({ where }),
     isNameSort
-      ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
+      ? getNameSortedIds(search, type, steves, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
           if (ids.length === 0) return []
           const rows = await prisma.person.findMany({ where: { id: { in: ids } }, select })
           const byId = new Map(rows.map(p => [p.id, p]))
@@ -183,7 +186,7 @@ export default async function PeoplePage({
           take: PAGE_SIZE,
         }),
     isNameSort
-      ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
+      ? getLetterPageMap(search, type, steves, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
     prisma.person.findMany({
       distinct: ['personType'],
@@ -191,8 +194,13 @@ export default async function PeoplePage({
     }),
   ])
 
-  const typeOptions = typeRows
-    .map(r => [r.personType, PERSON_TYPE_LABELS[r.personType] ?? humanizeType(r.personType)] as [string, string])
+  // Distinct rows may hold CSV values ("musician,actor") — offer each token once.
+  const typeTokens = new Set<string>()
+  for (const r of typeRows) {
+    for (const t of splitPersonTypes(r.personType)) typeTokens.add(t)
+  }
+  const typeOptions = Array.from(typeTokens)
+    .map(t => [t, personTypeLabel(t)] as [string, string])
     .sort(([, a], [, b]) => a.localeCompare(b))
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -233,7 +241,7 @@ export default async function PeoplePage({
         {isNameSort && Object.keys(letterPages).length > 0 && (
           <LetterJumper letterPages={letterPages} basePath="/people" />
         )}
-        {(search || type || sort) && (
+        {(search || type || sort || steves) && (
           <Link
             href="/people"
             className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
@@ -242,13 +250,21 @@ export default async function PeoplePage({
           </Link>
         )}
       </div>
+      <div className="-mt-5">
+        <StevesToggle />
+      </div>
 
       <Pagination page={page} totalPages={totalPages} basePath="/people" />
 
       {/* Grid */}
-      <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <FadeInGrid key={`${search}-${type}-${sort}-${steves}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {people.map((person) => {
           const anchorLetter = firstOfLetter.get(person.id)
+          // Show at most two type badges; overflow collapses into "+N" so the
+          // badge row never wraps into the tile text above it.
+          const personTypes = splitPersonTypes(person.personType)
+          const shownTypes = personTypes.slice(0, 2)
+          const extraTypes = personTypes.slice(2)
           return (
           <Link
             key={person.id}
@@ -295,9 +311,21 @@ export default async function PeoplePage({
                 </p>
               )}
             </div>
-            {/* Badge — pinned to bottom-left of card */}
-            <span className="absolute bottom-3 left-3 text-xs bg-warm-600 text-cream px-2 py-0.5 rounded capitalize">
-              {person.personType}
+            {/* Badges — pinned to bottom-left of card; one bubble per type */}
+            <span className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1">
+              {shownTypes.map((t) => (
+                <span key={t} className="text-xs bg-warm-600 text-cream px-2 py-0.5 rounded">
+                  {personTypeLabel(t)}
+                </span>
+              ))}
+              {extraTypes.length > 0 && (
+                <span
+                  className="text-xs bg-warm-600 text-cream px-2 py-0.5 rounded"
+                  title={extraTypes.map(personTypeLabel).join(', ')}
+                >
+                  +{extraTypes.length}
+                </span>
+              )}
             </span>
           </Link>
           )

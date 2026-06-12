@@ -7,6 +7,8 @@ import type { Metadata } from 'next'
 import { BackButton } from '@/components/ui/BackButton'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { CastingRow, type CastingRowData } from '@/components/ui/CastingRow'
+import { CastTile, yearSpan } from '@/components/ui/CastTile'
+import { splitPersonTypes, personTypeLabel } from '@/lib/personTypes'
 
 export const revalidate = 86400
 
@@ -91,6 +93,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
   type PersonGroup = {
     personId: number
     personName: string
+    personType: string
     personImageUrl: string | null
     titles: Map<number, TitleGroup>
   }
@@ -102,6 +105,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
       pg = {
         personId: c.personId,
         personName: c.person.name,
+        personType: c.person.personType,
         personImageUrl: c.person.imageUrl,
         titles: new Map(),
       }
@@ -164,7 +168,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
       : `${Math.min(...allYears)}–${Math.max(...allYears)}`
     : null
 
-  // Chip count: appearances (episodes if any, otherwise 1 per feature title)
+  // Tile count: appearances (episodes if any, otherwise 1 per feature title)
   const chipCount = (pg: typeof persons[0]) => {
     let n = 0
     for (const tg of pg.titlesSorted) {
@@ -172,6 +176,22 @@ export default async function CharacterPage({ params }: { params: { id: string }
       else n += tg.episodes.length
     }
     return n
+  }
+
+  // Year span for a cast tile: episode air years where known, title span for
+  // film-level appearances.
+  const castYears = (pg: typeof persons[0]) => {
+    const years: (number | null)[] = []
+    for (const tg of pg.titlesSorted) {
+      for (const ep of tg.episodes) {
+        years.push(ep.releaseDate ? new Date(ep.releaseDate).getUTCFullYear() : null)
+      }
+      if (tg.hasFilmLevel || tg.episodes.length === 0) {
+        years.push(tg.title.year)
+        years.push(tg.title.endDate ? tg.title.endDate.getUTCFullYear() : null)
+      }
+    }
+    return yearSpan(years)
   }
 
   const kicker = (CHARACTER_TYPE_LABEL[character.characterType] ?? character.characterType).toUpperCase()
@@ -243,31 +263,23 @@ export default async function CharacterPage({ params }: { params: { id: string }
               Cast
             </h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div
+            className="grid gap-3.5"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
+          >
             {persons.map((pg) => (
-              <Link
+              <CastTile
                 key={pg.personId}
-                href={`/people/${pg.personId}`}
-                className="inline-flex items-center gap-1.5 bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-full pl-1 pr-3 py-[5px] text-[12px] hover:border-steve dark:hover:border-warm-200 transition-colors"
-              >
-                <span className="w-[22px] h-[22px] rounded-full overflow-hidden relative shrink-0 bg-warm-100 dark:bg-warm-700">
-                  {pg.personImageUrl ? (
-                    <Image
-                      src={pg.personImageUrl}
-                      alt={pg.personName}
-                      fill
-                      className="object-cover"
-                      sizes="22px"
-                    />
-                  ) : (
-                    <Placeholder name={pg.personName} variant="avatar" />
-                  )}
-                </span>
-                <span className="font-serif font-bold text-steve">{pg.personName}</span>
-                <span className="bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-1.5 py-px rounded-full text-[10px] font-mono">
-                  {chipCount(pg)}
-                </span>
-              </Link>
+                tile={{
+                  href: `/people/${pg.personId}`,
+                  banner: splitPersonTypes(pg.personType).map(personTypeLabel).join(' / '),
+                  imageUrl: pg.titlesSorted.find(tg => tg.castingImageUrl)?.castingImageUrl ?? pg.personImageUrl,
+                  imageAlt: `${pg.personName} as ${character.name}`,
+                  name: pg.personName,
+                  years: castYears(pg),
+                  appearanceCount: chipCount(pg),
+                }}
+              />
             ))}
           </div>
         </section>

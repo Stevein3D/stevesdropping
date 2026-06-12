@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
 import { cache } from 'react'
 import type { Metadata } from 'next'
@@ -8,6 +7,7 @@ import { TitleBadge } from '@/components/ui/TitleBadge'
 import { BackButton } from '@/components/ui/BackButton'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { EpisodesBySeason, EpisodeRow, type EpisodeForList } from '@/components/ui/EpisodesBySeason'
+import { CastTile, yearSpan } from '@/components/ui/CastTile'
 
 export const revalidate = 86400
 
@@ -407,65 +407,20 @@ export default async function TitlePage({
             className="grid gap-3.5"
             style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
           >
-            {cast.map((c) => {
-              const yearText = c.yearStart != null
-                ? c.yearEnd != null && c.yearEnd !== c.yearStart
-                  ? `${c.yearStart}–${c.yearEnd}`
-                  : String(c.yearStart)
-                : ''
-              return (
-                <Link
-                  key={c.key}
-                  href={`/people/${c.personId}`}
-                  className="bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-md p-2.5 flex flex-col gap-2 hover:border-steve dark:hover:border-warm-200 hover:-translate-y-0.5 transition"
-                >
-                  <div
-                    className="bg-steve text-cream rounded-sm py-1 px-2 text-center text-[10px] font-semibold uppercase truncate"
-                    style={{ letterSpacing: '0.08em' }}
-                  >
-                    {c.character.name}
-                  </div>
-                  {c.castingImageUrl ? (
-                    <div className="aspect-[3/4] rounded-sm overflow-hidden relative">
-                      <Image
-                        src={c.castingImageUrl}
-                        alt={`${c.person.name} as ${c.character.name}`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 45vw, 150px"
-                      />
-                    </div>
-                  ) : c.person.imageUrl ? (
-                    <div className="aspect-[3/4] rounded-sm overflow-hidden relative">
-                      <Image
-                        src={c.person.imageUrl}
-                        alt={c.person.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 45vw, 150px"
-                      />
-                    </div>
-                  ) : (
-                    <Placeholder name={c.person.name} variant="portrait" className="rounded-sm" />
-                  )}
-                  <div className="font-serif font-bold text-[14px] text-center text-warm-900 dark:text-warm-200 leading-tight">
-                    {c.person.name}
-                  </div>
-                  <div className="text-[11px] text-warm-500 dark:text-warm-500 text-center">
-                    as <span className="text-steve font-medium">{c.character.name}</span>
-                  </div>
-                  <div
-                    className="flex justify-between border-t border-dotted border-cream-border dark:border-warm-700 pt-1.5 text-[9px] uppercase text-warm-600 dark:text-warm-500 tabular-nums"
-                    style={{ letterSpacing: '0.1em' }}
-                  >
-                    <span>{yearText}</span>
-                    <span title={`${c.appearanceCount} appearance${c.appearanceCount === 1 ? '' : 's'}`}>
-                      ({c.appearanceCount} EP)
-                    </span>
-                  </div>
-                </Link>
-              )
-            })}
+            {cast.map((c) => (
+              <CastTile
+                key={c.key}
+                tile={{
+                  href: `/people/${c.personId}`,
+                  banner: c.character.name,
+                  imageUrl: c.castingImageUrl ?? c.person.imageUrl,
+                  imageAlt: `${c.person.name} as ${c.character.name}`,
+                  name: c.person.name,
+                  years: yearSpan([c.yearStart, c.yearEnd]),
+                  appearanceCount: c.appearanceCount,
+                }}
+              />
+            ))}
           </div>
         </section>
       )}

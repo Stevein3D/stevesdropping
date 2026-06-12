@@ -5,7 +5,9 @@ import { TitleBadge } from '@/components/ui/TitleBadge'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { StevesToggle } from '@/components/ui/StevesToggle'
 import { humanizeType } from '@/lib/humanizeType'
+import { STEVE_NAME_REGEX } from '@/lib/personTypes'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { LetterJumper } from '@/components/ui/LetterJumper'
@@ -102,6 +104,7 @@ async function getNameSortedIds(
   search: string,
   type: string | undefined,
   genre: string | undefined,
+  steves: boolean,
   dir: 'ASC' | 'DESC',
   page: number,
 ): Promise<number[]> {
@@ -109,6 +112,7 @@ async function getNameSortedIds(
   if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
   if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
   if (genre)  conditions.push(Prisma.sql`t.genre ILIKE ${'%' + genre + '%'}`)
+  if (steves) conditions.push(Prisma.sql`t.name ~* ${STEVE_NAME_REGEX}`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -141,12 +145,14 @@ async function getLetterPageMap(
   search: string,
   type: string | undefined,
   genre: string | undefined,
+  steves: boolean,
   dir: 'ASC' | 'DESC',
 ): Promise<Record<string, number>> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
   if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
   if (genre)  conditions.push(Prisma.sql`t.genre ILIKE ${'%' + genre + '%'}`)
+  if (steves) conditions.push(Prisma.sql`t.name ~* ${STEVE_NAME_REGEX}`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -208,12 +214,22 @@ function getOrderBy(sort: string) {
 export default async function TitlesPage({
   searchParams,
 }: {
-  searchParams: { search?: string; type?: string; genre?: string; sort?: string; page?: string }
+  searchParams: { search?: string; type?: string; genre?: string; sort?: string; steves?: string; page?: string }
 }) {
   const { search = '', type, genre, sort = '' } = searchParams
+  const steves = searchParams.steves === '1'
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
 
+  // Prisma can't express the word-boundary regex the steves filter needs, so
+  // resolve matching ids up front and feed them into the where clause.
+  const steveIds = steves
+    ? (await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id FROM titles WHERE name ~* ${STEVE_NAME_REGEX}
+      `).map(r => Number(r.id))
+    : null
+
   const where = {
+    ...(steveIds && { id: { in: steveIds } }),
     ...(type && { titleType: type as any }),
     ...(genre && { genre: { contains: genre, mode: 'insensitive' as const } }),
     ...(search && {
@@ -255,7 +271,7 @@ export default async function TitlesPage({
   const [total, titles, letterPages, genreRows, typeRows] = await Promise.all([
     prisma.title.count({ where }),
     isNameSort
-      ? getNameSortedIds(search, type, genre, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
+      ? getNameSortedIds(search, type, genre, steves, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
           if (ids.length === 0) return []
           const rows = await prisma.title.findMany({ where: { id: { in: ids } }, select })
           const byId = new Map(rows.map(t => [t.id, t]))
@@ -268,7 +284,7 @@ export default async function TitlesPage({
           take: PAGE_SIZE,
         }),
     isNameSort
-      ? getLetterPageMap(search, type, genre, sort === 'name_desc' ? 'DESC' : 'ASC')
+      ? getLetterPageMap(search, type, genre, steves, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
     prisma.title.findMany({
       where: { genre: { not: null } },
@@ -339,7 +355,7 @@ export default async function TitlesPage({
         {isNameSort && Object.keys(letterPages).length > 0 && (
           <LetterJumper letterPages={letterPages} basePath="/titles" />
         )}
-        {(search || type || genre || sort) && (
+        {(search || type || genre || sort || steves) && (
           <Link
             href="/titles"
             className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
@@ -348,11 +364,14 @@ export default async function TitlesPage({
           </Link>
         )}
       </div>
+      <div className="-mt-5">
+        <StevesToggle />
+      </div>
 
       <Pagination page={page} totalPages={totalPages} basePath="/titles" />
 
       {/* Grid */}
-      <FadeInGrid key={`${search}-${type}-${genre ?? ''}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <FadeInGrid key={`${search}-${type}-${genre ?? ''}-${sort}-${steves}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {titles.map((title) => {
           const castingSummary = (castingSummaries.get(title.id) ?? []).join(' • ') || null
           const matchingEpisodes = title.episodes

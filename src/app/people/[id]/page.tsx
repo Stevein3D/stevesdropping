@@ -7,6 +7,9 @@ import type { Metadata } from 'next'
 import { BackButton } from '@/components/ui/BackButton'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { CastingRow, type CastingRowData } from '@/components/ui/CastingRow'
+import { CastTile, yearSpan } from '@/components/ui/CastTile'
+import { splitPersonTypes, personTypeLabel } from '@/lib/personTypes'
+import { humanizeType } from '@/lib/humanizeType'
 
 export const revalidate = 86400
 
@@ -17,20 +20,9 @@ function formatFullDate(d: Date | null): string | null {
   return `${MONTH_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`
 }
 
-const PERSON_TYPE_LABEL: Record<string, string> = {
-  actor:      'Actor',
-  artist:     'Artist',
-  author:     'Author',
-  celebrity:  'Celebrity',
-  comedian:   'Comedian',
-  composer:   'Composer',
-  director:   'Director',
-  filmmaker:  'Filmmaker',
-  inventor:   'Inventor',
-  musician:   'Musician',
-  athlete:    'Athlete',
-  writer:     'Writer',
-  other:      'Other',
+// Treat null/empty/whitespace-only values as absent so their labels never render.
+function hasText(value: string | null | undefined): value is string {
+  return value != null && value.trim() !== ''
 }
 
 const getPerson = cache(async (id: number) =>
@@ -106,6 +98,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
   type CharGroup = {
     characterId: number
     characterName: string
+    characterType: string
     characterImageUrl: string | null
     titles: Map<number, TitleGroup>
   }
@@ -117,6 +110,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
       cg = {
         characterId: c.characterId,
         characterName: c.character.name,
+        characterType: c.character.characterType,
         characterImageUrl: c.character.imageUrl,
         titles: new Map(),
       }
@@ -179,7 +173,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
       : `${Math.min(...allYears)}–${Math.max(...allYears)}`
     : null
 
-  // For each character chip: count of "appearances" (sum of episodes; 1 per feature).
+  // For each character tile: count of "appearances" (sum of episodes; 1 per feature).
   const chipCount = (cg: typeof characters[0]) => {
     let n = 0
     for (const tg of cg.titlesSorted) {
@@ -188,6 +182,24 @@ export default async function PersonPage({ params }: { params: { id: string } })
     }
     return n
   }
+
+  // Year span for a character tile: episode air years where known, title span
+  // for film-level appearances.
+  const roleYears = (cg: typeof characters[0]) => {
+    const years: (number | null)[] = []
+    for (const tg of cg.titlesSorted) {
+      for (const ep of tg.episodes) {
+        years.push(ep.releaseDate ? new Date(ep.releaseDate).getUTCFullYear() : null)
+      }
+      if (tg.hasFilmLevel || tg.episodes.length === 0) {
+        years.push(tg.title.year)
+        years.push(tg.title.endDate ? tg.title.endDate.getUTCFullYear() : null)
+      }
+    }
+    return yearSpan(years)
+  }
+
+  const personTypes = splitPersonTypes(person.personType)
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -200,20 +212,20 @@ export default async function PersonPage({ params }: { params: { id: string } })
       ?? (person.birthYear ? `${person.birthYear}-01-01` : undefined),
     deathDate: person.deathDate?.toISOString().slice(0, 10)
       ?? (person.deathYear ? `${person.deathYear}-01-01` : undefined),
-    nationality: person.nationality ?? undefined,
-    jobTitle: person.personType,
+    nationality: hasText(person.nationality) ? person.nationality : undefined,
+    jobTitle: personTypes.length === 1 ? personTypeLabel(personTypes[0]) : personTypes.map(personTypeLabel),
   }
 
-  // Banner kicker: PERSON_TYPE · b. {birthYear} – d. {deathYear} · {birthplace}
+  // Banner kicker: PERSON_TYPE [/ PERSON_TYPE …] · b. {birthYear} – d. {deathYear}
+  // (birthplace moved out of the kicker — it now has a labeled spot in the hero)
   const kickerParts: string[] = []
-  kickerParts.push((PERSON_TYPE_LABEL[person.personType] ?? person.personType).toUpperCase())
+  kickerParts.push(personTypes.map(t => personTypeLabel(t).toUpperCase()).join(' / '))
   const lifeDates: string[] = []
   const birthText = formatFullDate(person.birthDate) ?? (person.birthYear ? String(person.birthYear) : null)
   const deathText = formatFullDate(person.deathDate) ?? (person.deathYear ? String(person.deathYear) : null)
   if (birthText) lifeDates.push(`b. ${birthText}`)
   if (deathText) lifeDates.push(`d. ${deathText}`)
   if (lifeDates.length > 0) kickerParts.push(lifeDates.join(' – '))
-  if (person.birthplace) kickerParts.push(person.birthplace)
   const kicker = kickerParts.join(' · ')
 
   const truncatedBio = person.bio
@@ -268,6 +280,49 @@ export default async function PersonPage({ params }: { params: { id: string } })
                 {truncatedBio}
               </p>
             )}
+            {(hasText(person.nationality) || hasText(person.birthplace)) && (
+              <div className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
+                {hasText(person.nationality) && (
+                  <div>
+                    <p
+                      className="text-steve uppercase font-semibold text-[9px] mb-1"
+                      style={{ letterSpacing: '0.18em' }}
+                    >
+                      Nationality
+                    </p>
+                    <p className="text-[13px] text-warm-600 dark:text-warm-400 leading-[1.5]">
+                      {person.nationality}
+                    </p>
+                  </div>
+                )}
+                {hasText(person.birthplace) && (
+                  <div>
+                    <p
+                      className="text-steve uppercase font-semibold text-[9px] mb-1"
+                      style={{ letterSpacing: '0.18em' }}
+                    >
+                      Birthplace
+                    </p>
+                    <p className="text-[13px] text-warm-600 dark:text-warm-400 leading-[1.5]">
+                      {person.birthplace}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            {hasText(person.notableAchievement) && (
+              <div className="mt-3">
+                <p
+                  className="text-steve uppercase font-semibold text-[9px] mb-1"
+                  style={{ letterSpacing: '0.18em' }}
+                >
+                  Notable Achievement
+                </p>
+                <p className="text-[13px] text-warm-600 dark:text-warm-400 leading-[1.5] max-w-[60ch]">
+                  {person.notableAchievement}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Stats — horizontal in both modes; under content on mobile, right column on desktop */}
@@ -287,31 +342,23 @@ export default async function PersonPage({ params }: { params: { id: string } })
               Roles
             </h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div
+            className="grid gap-3.5"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
+          >
             {characters.map((cg) => (
-              <Link
+              <CastTile
                 key={cg.characterId}
-                href={`/characters/${cg.characterId}`}
-                className="inline-flex items-center gap-1.5 bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-full pl-1 pr-3 py-[5px] text-[12px] hover:border-steve dark:hover:border-warm-200 transition-colors"
-              >
-                <span className="w-[22px] h-[22px] rounded-full overflow-hidden relative shrink-0 bg-warm-100 dark:bg-warm-700">
-                  {cg.characterImageUrl ? (
-                    <Image
-                      src={cg.characterImageUrl}
-                      alt={cg.characterName}
-                      fill
-                      className="object-cover"
-                      sizes="22px"
-                    />
-                  ) : (
-                    <Placeholder name={cg.characterName} variant="avatar" />
-                  )}
-                </span>
-                <span className="font-serif font-bold text-steve">{cg.characterName}</span>
-                <span className="bg-warm-100 dark:bg-warm-700 text-warm-600 dark:text-warm-500 px-1.5 py-px rounded-full text-[10px] font-mono">
-                  {chipCount(cg)}
-                </span>
-              </Link>
+                tile={{
+                  href: `/characters/${cg.characterId}`,
+                  banner: humanizeType(cg.characterType),
+                  imageUrl: cg.characterImageUrl,
+                  imageAlt: cg.characterName,
+                  name: cg.characterName,
+                  years: roleYears(cg),
+                  appearanceCount: chipCount(cg),
+                }}
+              />
             ))}
           </div>
         </section>

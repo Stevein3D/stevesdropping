@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { personTypeFilter } from '@/lib/personTypes'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     const people = await prisma.person.findMany({
       where: {
         ...(search && { name: { contains: search, mode: 'insensitive' } }),
-        ...(type && { personType: type as any }),
+        ...(type && personTypeFilter(type)),
       },
       include: {
         castings: {

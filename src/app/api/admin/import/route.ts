@@ -122,6 +122,17 @@ function normalizeType(value: string | null | undefined, fallback: string): stri
     .replace(/^_+|_+$/g, '')
 }
 
+// personType accepts comma-separated values ("Musician, Actor" → "musician,actor").
+// Each token is normalized individually and joined with bare commas — the
+// canonical CSV form the display/filter layers (src/lib/personTypes.ts) rely on.
+function normalizeTypeList(value: string | null | undefined, fallback: string): string {
+  const tokens = (value ?? '')
+    .split(',')
+    .map(t => normalizeType(t, ''))
+    .filter(Boolean)
+  return tokens.length > 0 ? Array.from(new Set(tokens)).join(',') : fallback
+}
+
 // ─── Route ──────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -180,7 +191,7 @@ export async function POST(request: NextRequest) {
       try {
         const data = {
           name:               row['Name'],
-          personType:         normalizeType(row['Person Type'], 'actor'),
+          personType:         normalizeTypeList(row['Person Type'], 'actor'),
           prefix:             row['Prefix'],
           firstName:          row['First Name'],
           middleName:         row['Middle Name'],

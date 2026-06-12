@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { StevesToggle } from '@/components/ui/StevesToggle'
 import { humanizeType } from '@/lib/humanizeType'
+import { STEVE_NAME_REGEX } from '@/lib/personTypes'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { LetterJumper } from '@/components/ui/LetterJumper'
@@ -50,12 +52,14 @@ const SORT_OPTIONS: { value: SortOption | ''; label: string }[] = [
 async function getNameSortedIds(
   search: string,
   type: string | undefined,
+  steves: boolean,
   dir: 'ASC' | 'DESC',
   page: number,
 ): Promise<number[]> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`name ILIKE ${'%' + search + '%'}`)
   if (type)   conditions.push(Prisma.sql`"characterType"::text = ${type}`)
+  if (steves) conditions.push(Prisma.sql`name ~* ${STEVE_NAME_REGEX}`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -79,11 +83,13 @@ async function getNameSortedIds(
 async function getLetterPageMap(
   search: string,
   type: string | undefined,
+  steves: boolean,
   dir: 'ASC' | 'DESC',
 ): Promise<Record<string, number>> {
   const conditions: Prisma.Sql[] = []
   if (search) conditions.push(Prisma.sql`name ILIKE ${'%' + search + '%'}`)
   if (type)   conditions.push(Prisma.sql`"characterType"::text = ${type}`)
+  if (steves) conditions.push(Prisma.sql`name ~* ${STEVE_NAME_REGEX}`)
 
   const whereClause = conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -133,14 +139,24 @@ function getOrderBy(sort: string) {
 export default async function CharactersPage({
   searchParams,
 }: {
-  searchParams: { search?: string; type?: string; sort?: string; page?: string }
+  searchParams: { search?: string; type?: string; sort?: string; steves?: string; page?: string }
 }) {
   const { search = '', type, sort = '' } = searchParams
+  const steves = searchParams.steves === '1'
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
+
+  // Prisma can't express the word-boundary regex the steves filter needs, so
+  // resolve matching ids up front and feed them into the where clause.
+  const steveIds = steves
+    ? (await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id FROM characters WHERE name ~* ${STEVE_NAME_REGEX}
+      `).map(r => Number(r.id))
+    : null
 
   const where = {
     ...(search && { name: { contains: search, mode: 'insensitive' as const } }),
     ...(type && { characterType: type as any }),
+    ...(steveIds && { id: { in: steveIds } }),
   }
 
   const isNameSort = sort === '' || sort === 'name_desc'
@@ -160,7 +176,7 @@ export default async function CharactersPage({
   const [total, characters, letterPages, typeRows] = await Promise.all([
     prisma.character.count({ where }),
     isNameSort
-      ? getNameSortedIds(search, type, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
+      ? getNameSortedIds(search, type, steves, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
           if (ids.length === 0) return []
           const rows = await prisma.character.findMany({ where: { id: { in: ids } }, select })
           const byId = new Map(rows.map(c => [c.id, c]))
@@ -173,7 +189,7 @@ export default async function CharactersPage({
           take: PAGE_SIZE,
         }),
     isNameSort
-      ? getLetterPageMap(search, type, sort === 'name_desc' ? 'DESC' : 'ASC')
+      ? getLetterPageMap(search, type, steves, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
     prisma.character.findMany({
       distinct: ['characterType'],
@@ -221,7 +237,7 @@ export default async function CharactersPage({
         {isNameSort && Object.keys(letterPages).length > 0 && (
           <LetterJumper letterPages={letterPages} basePath="/characters" />
         )}
-        {(search || type || sort) && (
+        {(search || type || sort || steves) && (
           <Link
             href="/characters"
             className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
@@ -230,10 +246,13 @@ export default async function CharactersPage({
           </Link>
         )}
       </div>
+      <div className="-mt-5">
+        <StevesToggle />
+      </div>
 
       <Pagination page={page} totalPages={totalPages} basePath="/characters" />
 
-      <FadeInGrid key={`${search}-${type}-${sort}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <FadeInGrid key={`${search}-${type}-${sort}-${steves}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {characters.map((character) => {
           const anchorLetter = firstOfLetter.get(character.id)
           return (
