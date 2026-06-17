@@ -78,7 +78,7 @@ export default function SuggestForm() {
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Which Steve are we missing?"
+        placeholder="What's on your mind?"
         required
         rows={3}
         maxLength={2000}
