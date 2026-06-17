@@ -111,7 +111,7 @@ export function Header() {
             type="button"
             onClick={goToSuggest}
             aria-label="Suggest a missing Steve"
-            className="hover:text-steve transition-colors"
+            className="border border-warm-500 text-warm-600 dark:text-warm-500 p-1.5 rounded-full hover:border-steve dark:hover:border-warm-200 hover:text-steve transition-colors"
           >
             <MailIcon />
           </button>
@@ -130,7 +130,7 @@ export function Header() {
             type="button"
             onClick={goToSuggest}
             aria-label="Suggest a missing Steve"
-            className="hover:text-steve transition-colors"
+            className="border border-warm-500 text-warm-600 dark:text-warm-500 p-1.5 rounded-full hover:border-steve dark:hover:border-warm-200 hover:text-steve transition-colors"
           >
             <MailIcon />
           </button>
