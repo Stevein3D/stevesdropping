@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <BackToTopButton />
-        <footer className="border-t border-cream-border dark:border-warm-700 px-6 pt-10 pb-6 mt-20">
+        <footer id="suggest" className="border-t border-cream-border dark:border-warm-700 px-6 pt-10 pb-6 mt-20">
           <SuggestForm />
           <p className="text-center text-xs text-warm-600 dark:text-warm-500 mt-10">
             Stevesdropping — All Steves, All the Time

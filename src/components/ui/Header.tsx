@@ -51,6 +51,15 @@ function CloseIcon() {
   )
 }
 
+function MailIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  )
+}
+
 export function Header() {
   const [dark, setDark] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -69,6 +78,21 @@ export function Header() {
     localStorage.setItem('theme', next ? 'dark' : 'light')
   }
 
+  // Jump to the footer suggestion form and focus the email field. If the form
+  // was already submitted (the email input no longer exists), fall back to
+  // scrolling to the footer container.
+  const goToSuggest = () => {
+    setMenuOpen(false)
+    const input = document.getElementById('suggest-email') as HTMLInputElement | null
+    const target = input ?? document.getElementById('suggest')
+    if (!target) return
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (input) {
+      // Delay focus so it doesn't interrupt the smooth scroll.
+      setTimeout(() => input.focus({ preventScroll: true }), 600)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b-2 border-steve py-4 bg-cream dark:bg-warm-800">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -84,6 +108,14 @@ export function Header() {
             </Link>
           ))}
           <button
+            type="button"
+            onClick={goToSuggest}
+            aria-label="Suggest a missing Steve"
+            className="hover:text-steve transition-colors"
+          >
+            <MailIcon />
+          </button>
+          <button
             onClick={toggleDark}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             className="border border-warm-500 text-warm-600 dark:text-warm-500 p-1.5 rounded-full hover:border-steve dark:hover:border-warm-200 hover:text-steve transition-colors"
@@ -92,8 +124,16 @@ export function Header() {
           </button>
         </nav>
 
-        {/* Mobile: dark toggle + hamburger */}
+        {/* Mobile: mail + dark toggle + hamburger */}
         <div className="flex sm:hidden items-center gap-3 text-warm-600 dark:text-warm-500">
+          <button
+            type="button"
+            onClick={goToSuggest}
+            aria-label="Suggest a missing Steve"
+            className="hover:text-steve transition-colors"
+          >
+            <MailIcon />
+          </button>
           <button
             onClick={toggleDark}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
