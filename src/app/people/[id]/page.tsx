@@ -1,12 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { BackButton } from '@/components/ui/BackButton'
 import { Placeholder } from '@/components/ui/Placeholder'
-import { CastingRow, type CastingRowData } from '@/components/ui/CastingRow'
+import { Filmography } from '@/components/ui/Filmography'
 import { CastTile, yearSpan } from '@/components/ui/CastTile'
 import { splitPersonTypes, personTypeLabel } from '@/lib/personTypes'
 import { humanizeType } from '@/lib/humanizeType'
@@ -232,6 +231,30 @@ export default async function PersonPage({ params }: { params: { id: string } })
     ? person.bio.length > 280 ? person.bio.slice(0, 280).trim() + '…' : person.bio
     : null
 
+  // Plain-serializable shape for the Filmography client component.
+  const filmographyCharacters = characters.map((cg) => ({
+    characterId: cg.characterId,
+    characterName: cg.characterName,
+    characterImageUrl: cg.characterImageUrl,
+    titles: cg.titlesSorted.map((tg) => ({
+      titleId: tg.titleId,
+      title: {
+        id: tg.title.id,
+        name: tg.title.name,
+        year: tg.title.year,
+        endYear: tg.title.endDate ? tg.title.endDate.getUTCFullYear() : null,
+        description: tg.title.description,
+        genre: tg.title.genre,
+        titleType: tg.title.titleType,
+        imageUrl: tg.title.imageUrl,
+      },
+      castingImageUrl: tg.castingImageUrl,
+      hasFilmLevel: tg.hasFilmLevel,
+      episodes: tg.episodes,
+      episodeCount: tg.episodes.length,
+    })),
+  }))
+
   return (
     <div className="space-y-8 sm:space-y-10">
       <BackButton />
@@ -366,69 +389,15 @@ export default async function PersonPage({ params }: { params: { id: string } })
 
       {/* Filmography */}
       {characters.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-2">
-            <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
-              Filmography
-            </h2>
-            <span className="text-xs text-warm-600 dark:text-warm-500">
-              {distinctTitles.size} title{distinctTitles.size === 1 ? '' : 's'} · {person.castings.length} appearance{person.castings.length === 1 ? '' : 's'}
-              {spanText ? ` · ${spanText}` : ''}
-            </span>
-          </div>
-
-          {characters.map((cg) => {
-            return (
-              <div key={cg.characterId} className="space-y-0">
-                {/* Character heading */}
-                <div className="flex items-center gap-2.5 pt-2 pb-2">
-                  <span className="w-[30px] h-[30px] rounded-full overflow-hidden relative shrink-0 bg-warm-100 dark:bg-warm-700">
-                    {cg.characterImageUrl ? (
-                      <Image
-                        src={cg.characterImageUrl}
-                        alt={cg.characterName}
-                        fill
-                        className="object-cover"
-                        sizes="30px"
-                      />
-                    ) : (
-                      <Placeholder name={cg.characterName} variant="avatar" />
-                    )}
-                  </span>
-                  <Link
-                    href={`/characters/${cg.characterId}`}
-                    className="font-serif font-black text-[18px] text-steve hover:text-steve-hover transition-colors"
-                  >
-                    {cg.characterName}
-                  </Link>
-                </div>
-
-                {/* Rows */}
-                <div>
-                  {cg.titlesSorted.map((tg) => {
-                    const data: CastingRowData = {
-                      titleId: tg.titleId,
-                      title: {
-                        id: tg.title.id,
-                        name: tg.title.name,
-                        year: tg.title.year,
-                        endYear: tg.title.endDate ? tg.title.endDate.getUTCFullYear() : null,
-                        description: tg.title.description,
-                        genre: tg.title.genre,
-                        titleType: tg.title.titleType,
-                        imageUrl: tg.title.imageUrl,
-                      },
-                      castingImageUrl: tg.castingImageUrl,
-                      hasFilmLevel: tg.hasFilmLevel,
-                      episodes: tg.episodes,
-                    }
-                    return <CastingRow key={tg.titleId} data={data} />
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </section>
+        <Filmography
+          characters={filmographyCharacters}
+          stats={{
+            distinctTitles: distinctTitles.size,
+            appearances: person.castings.length,
+            spanText,
+          }}
+          defaultCompact={distinctTitles.size > 4}
+        />
       )}
 
       {characters.length === 0 && (
