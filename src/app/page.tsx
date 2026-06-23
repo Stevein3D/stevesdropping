@@ -98,9 +98,12 @@ export default async function HomePage() {
         ORDER BY random()
         LIMIT GREATEST(0, 8 - (SELECT COUNT(*) FROM featured))
       )
-      SELECT id, name, "imageUrl", "updatedAt" FROM featured
-      UNION ALL
-      SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
+      SELECT id, name, "imageUrl", "updatedAt" FROM (
+        SELECT id, name, "imageUrl", "updatedAt", priority FROM featured
+        UNION ALL
+        SELECT id, name, "imageUrl", "updatedAt", priority FROM filler
+      ) combined
+      ORDER BY priority, random()`,
     prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string; updatedAt: Date }[]>`
       WITH featured AS (
         SELECT id, name, "imageUrl", "updatedAt", 0 AS priority FROM characters
@@ -111,9 +114,12 @@ export default async function HomePage() {
         ORDER BY random()
         LIMIT GREATEST(0, 8 - (SELECT COUNT(*) FROM featured))
       )
-      SELECT id, name, "imageUrl", "updatedAt" FROM featured
-      UNION ALL
-      SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
+      SELECT id, name, "imageUrl", "updatedAt" FROM (
+        SELECT id, name, "imageUrl", "updatedAt", priority FROM featured
+        UNION ALL
+        SELECT id, name, "imageUrl", "updatedAt", priority FROM filler
+      ) combined
+      ORDER BY priority, random()`,
     prisma.$queryRaw<{ id: bigint; name: string; imageUrl: string; updatedAt: Date }[]>`
       WITH featured AS (
         SELECT id, name, "imageUrl", "updatedAt", 0 AS priority FROM titles
@@ -124,9 +130,12 @@ export default async function HomePage() {
         ORDER BY random()
         LIMIT GREATEST(0, 8 - (SELECT COUNT(*) FROM featured))
       )
-      SELECT id, name, "imageUrl", "updatedAt" FROM featured
-      UNION ALL
-      SELECT id, name, "imageUrl", "updatedAt" FROM filler`,
+      SELECT id, name, "imageUrl", "updatedAt" FROM (
+        SELECT id, name, "imageUrl", "updatedAt", priority FROM featured
+        UNION ALL
+        SELECT id, name, "imageUrl", "updatedAt", priority FROM filler
+      ) combined
+      ORDER BY priority, random()`,
 
     // Today's events
     prisma.$queryRaw<RawRow[]>`
