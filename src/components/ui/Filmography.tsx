@@ -36,15 +36,11 @@ export function Filmography({
 
   return (
     <section className="space-y-4">
-      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-2">
-        <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
-          Filmography
-        </h2>
+      <div className="flex items-center justify-between border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-2">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs text-warm-600 dark:text-warm-500">
-            {stats.distinctTitles} title{stats.distinctTitles === 1 ? '' : 's'} · {stats.appearances} appearance{stats.appearances === 1 ? '' : 's'}
-            {stats.spanText ? ` · ${stats.spanText}` : ''}
-          </span>
+          <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
+            Filmography
+          </h2>
           {/* Compact / Full toggle */}
           <div className="inline-flex bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-full p-[3px] text-[11px]">
             <button
@@ -71,6 +67,10 @@ export function Filmography({
             </button>
           </div>
         </div>
+        <span className="text-xs text-warm-600 dark:text-warm-500">
+          {stats.distinctTitles} title{stats.distinctTitles === 1 ? '' : 's'} · {stats.appearances} appearance{stats.appearances === 1 ? '' : 's'}
+          {stats.spanText ? ` · ${stats.spanText}` : ''}
+        </span>
       </div>
 
       {characters.map((cg) => (
@@ -99,11 +99,19 @@ export function Filmography({
           </div>
 
           {/* Rows */}
-          <div>
-            {compact
-              ? cg.titles.map((t) => <CompactTitleRow key={t.titleId} t={t} />)
-              : cg.titles.map((t) => <CastingRow key={t.titleId} data={t} />)}
-          </div>
+          {compact ? (
+            <div className="grid sm:grid-cols-2 sm:gap-x-6">
+              {cg.titles.map((t) => (
+                <CompactTitleRow key={t.titleId} t={t} />
+              ))}
+            </div>
+          ) : (
+            <div>
+              {cg.titles.map((t) => (
+                <CastingRow key={t.titleId} data={t} />
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </section>
@@ -118,17 +126,17 @@ function CompactTitleRow({ t }: { t: FilmographyTitle }) {
     : ''
 
   return (
-    <div className="flex items-center gap-3 py-1.5 px-1.5 border-b border-dotted border-cream-border dark:border-warm-700">
+    <div className="flex items-center gap-3 py-2 px-1.5 border-b border-dotted border-cream-border dark:border-warm-700">
       {/* Tiny poster */}
       <Link
         href={`/titles/${t.titleId}`}
-        className="block w-7 shrink-0 hover:opacity-90 transition-opacity"
+        className="block w-9 shrink-0 hover:opacity-90 transition-opacity"
       >
         {t.title.imageUrl ? (
           <LightboxImage
             src={t.title.imageUrl}
             alt={t.title.name}
-            sizes="28px"
+            sizes="36px"
             containerClassName="aspect-[2/3] rounded-sm overflow-hidden relative bg-warm-100 dark:bg-warm-700"
           />
         ) : (
@@ -136,24 +144,25 @@ function CompactTitleRow({ t }: { t: FilmographyTitle }) {
         )}
       </Link>
 
-      {/* Title (truncates) */}
-      <Link
-        href={`/titles/${t.titleId}`}
-        className="font-serif font-bold text-[14px] sm:text-[15px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors min-w-0 truncate"
-      >
-        {t.title.name}
-      </Link>
+      {/* Title → year → type bubble, stacked */}
+      <div className="min-w-0 flex-1 flex flex-col items-start gap-1">
+        <Link
+          href={`/titles/${t.titleId}`}
+          className="max-w-full truncate font-serif font-bold text-[14px] sm:text-[15px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
+        >
+          {t.title.name}
+        </Link>
+        {yearText && (
+          <span className="font-serif font-bold italic text-[12px] text-warm-600 dark:text-warm-500 tabular-nums">
+            {yearText}
+          </span>
+        )}
+        <TitleBadge type={t.title.titleType} />
+      </div>
 
-      <TitleBadge type={t.title.titleType} />
-
-      {yearText && (
-        <span className="font-serif font-bold italic text-[12px] text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
-          {yearText}
-        </span>
-      )}
-
+      {/* Episode count (TV) on the right */}
       {t.episodeCount > 0 && (
-        <span className="ml-auto text-[11px] text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
+        <span className="shrink-0 text-[11px] text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
           {t.episodeCount} ep{t.episodeCount === 1 ? '' : 's'}
         </span>
       )}
