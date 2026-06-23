@@ -126,7 +126,7 @@ function CompactTitleRow({ t }: { t: FilmographyTitle }) {
     : ''
 
   return (
-    <div className="flex items-center gap-3 py-2 px-1.5 border-b border-dotted border-cream-border dark:border-warm-700">
+    <div className="flex items-start gap-3 py-2 px-1.5 border-b border-dotted border-cream-border dark:border-warm-700">
       {/* Tiny poster */}
       <Link
         href={`/titles/${t.titleId}`}
@@ -144,23 +144,25 @@ function CompactTitleRow({ t }: { t: FilmographyTitle }) {
         )}
       </Link>
 
-      {/* Title → year → type bubble, stacked */}
+      {/* Title + year on one line, type bubble below */}
       <div className="min-w-0 flex-1 flex flex-col items-start gap-1">
-        <Link
-          href={`/titles/${t.titleId}`}
-          className="max-w-full truncate font-serif font-bold text-[14px] sm:text-[15px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
-        >
-          {t.title.name}
-        </Link>
-        {yearText && (
-          <span className="font-serif font-bold italic text-[12px] text-warm-600 dark:text-warm-500 tabular-nums">
-            {yearText}
-          </span>
-        )}
+        <div className="flex items-baseline gap-2 min-w-0 max-w-full">
+          <Link
+            href={`/titles/${t.titleId}`}
+            className="min-w-0 truncate font-serif font-bold text-[14px] sm:text-[15px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors"
+          >
+            {t.title.name}
+          </Link>
+          {yearText && (
+            <span className="shrink-0 font-serif font-bold italic text-[12px] text-warm-600 dark:text-warm-500 tabular-nums">
+              {yearText}
+            </span>
+          )}
+        </div>
         <TitleBadge type={t.title.titleType} />
       </div>
 
-      {/* Episode count (TV) on the right */}
+      {/* Episode count (TV) — top-right */}
       {t.episodeCount > 0 && (
         <span className="shrink-0 text-[11px] text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
           {t.episodeCount} ep{t.episodeCount === 1 ? '' : 's'}
