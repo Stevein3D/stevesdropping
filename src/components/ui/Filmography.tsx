@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CastingRow, type CastingRowData } from './CastingRow'
 import { Placeholder } from './Placeholder'
+import { TitleBadge } from './TitleBadge'
+import { LightboxImage } from './LightboxImage'
 
 export type FilmographyTitle = CastingRowData & { episodeCount: number }
 
@@ -23,21 +26,51 @@ export type FilmographyStats = {
 export function Filmography({
   characters,
   stats,
+  defaultCompact,
 }: {
   characters: FilmographyCharacter[]
   stats: FilmographyStats
   defaultCompact: boolean
 }) {
+  const [compact, setCompact] = useState(defaultCompact)
+
   return (
     <section className="space-y-4">
       <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2 flex-wrap gap-2">
         <h2 className="font-serif text-[22px] font-black text-warm-900 dark:text-warm-200">
           Filmography
         </h2>
-        <span className="text-xs text-warm-600 dark:text-warm-500">
-          {stats.distinctTitles} title{stats.distinctTitles === 1 ? '' : 's'} · {stats.appearances} appearance{stats.appearances === 1 ? '' : 's'}
-          {stats.spanText ? ` · ${stats.spanText}` : ''}
-        </span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs text-warm-600 dark:text-warm-500">
+            {stats.distinctTitles} title{stats.distinctTitles === 1 ? '' : 's'} · {stats.appearances} appearance{stats.appearances === 1 ? '' : 's'}
+            {stats.spanText ? ` · ${stats.spanText}` : ''}
+          </span>
+          {/* Compact / Full toggle */}
+          <div className="inline-flex bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-full p-[3px] text-[11px]">
+            <button
+              onClick={() => setCompact(true)}
+              className={`px-3 py-1 rounded-full font-semibold transition-colors ${
+                compact
+                  ? 'bg-steve text-cream'
+                  : 'text-warm-600 dark:text-warm-500 hover:text-warm-900 dark:hover:text-warm-200'
+              }`}
+              style={{ letterSpacing: '0.05em' }}
+            >
+              Compact
+            </button>
+            <button
+              onClick={() => setCompact(false)}
+              className={`px-3 py-1 rounded-full font-semibold transition-colors ${
+                !compact
+                  ? 'bg-steve text-cream'
+                  : 'text-warm-600 dark:text-warm-500 hover:text-warm-900 dark:hover:text-warm-200'
+              }`}
+              style={{ letterSpacing: '0.05em' }}
+            >
+              Full
+            </button>
+          </div>
+        </div>
       </div>
 
       {characters.map((cg) => (
@@ -67,12 +100,63 @@ export function Filmography({
 
           {/* Rows */}
           <div>
-            {cg.titles.map((t) => (
-              <CastingRow key={t.titleId} data={t} />
-            ))}
+            {compact
+              ? cg.titles.map((t) => <CompactTitleRow key={t.titleId} t={t} />)
+              : cg.titles.map((t) => <CastingRow key={t.titleId} data={t} />)}
           </div>
         </div>
       ))}
     </section>
+  )
+}
+
+function CompactTitleRow({ t }: { t: FilmographyTitle }) {
+  const yearText = t.title.year != null
+    ? t.title.endYear != null && t.title.endYear !== t.title.year
+      ? `${t.title.year}–${t.title.endYear}`
+      : String(t.title.year)
+    : ''
+
+  return (
+    <div className="flex items-center gap-3 py-1.5 px-1.5 border-b border-dotted border-cream-border dark:border-warm-700">
+      {/* Tiny poster */}
+      <Link
+        href={`/titles/${t.titleId}`}
+        className="block w-7 shrink-0 hover:opacity-90 transition-opacity"
+      >
+        {t.title.imageUrl ? (
+          <LightboxImage
+            src={t.title.imageUrl}
+            alt={t.title.name}
+            sizes="28px"
+            containerClassName="aspect-[2/3] rounded-sm overflow-hidden relative bg-warm-100 dark:bg-warm-700"
+          />
+        ) : (
+          <Placeholder name={t.title.name} variant="poster" className="rounded-sm" />
+        )}
+      </Link>
+
+      {/* Title (truncates) */}
+      <Link
+        href={`/titles/${t.titleId}`}
+        className="font-serif font-bold text-[14px] sm:text-[15px] text-warm-900 dark:text-warm-200 hover:text-steve transition-colors min-w-0 truncate"
+      >
+        {t.title.name}
+      </Link>
+
+      <TitleBadge type={t.title.titleType} />
+
+      {yearText && (
+        <span className="font-serif font-bold italic text-[12px] text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
+          {yearText}
+        </span>
+      )}
+
+      {t.episodeCount > 0 && (
+        <span className="ml-auto text-[11px] text-warm-600 dark:text-warm-500 tabular-nums whitespace-nowrap">
+          {t.episodeCount} ep{t.episodeCount === 1 ? '' : 's'}
+        </span>
+      )}
+    </div>
   )
 }
