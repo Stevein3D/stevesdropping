@@ -65,6 +65,10 @@ export function CastingRow({ data }: { data: CastingRowData }) {
     return m
   }, [tg.episodes])
 
+  // Show the season bar whenever season data exists — even a single season
+  // (renders All + S1). Titles without seasons (e.g. films, TV movies) show none.
+  const showSeasonBar = seasons.length > 0
+
   const visible = useMemo(() => {
     const filtered = filter === 'all' ? tg.episodes : tg.episodes.filter((e) => e.season === filter)
     return [...filtered].sort((a, b) =>
@@ -139,7 +143,7 @@ export function CastingRow({ data }: { data: CastingRowData }) {
       {/* Episodes — full width below the header line */}
       {tg.episodes.length > 0 && (
         <div className="mt-3">
-          {seasons.length > 1 && (
+          {showSeasonBar && (
             <div className="inline-flex bg-cream-card dark:bg-warm-50/5 border border-cream-border dark:border-warm-700 rounded-full p-[3px] text-[11px] mb-2 max-w-full overflow-x-auto overflow-y-hidden no-scrollbar">
               <button
                 onClick={() => setFilter('all')}

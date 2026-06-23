@@ -77,7 +77,7 @@ export function EpisodesBySeason({ episodes }: { episodes: EpisodeForList[] }) {
 
   return (
     <div>
-      {seasons.length > 1 && (
+      {seasons.length > 0 && (
         <div className="flex gap-0.5 border-b border-cream-border dark:border-warm-700 mb-4 overflow-x-auto overflow-y-hidden no-scrollbar">
           <button
             onClick={() => setActive('all')}
