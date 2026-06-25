@@ -10,10 +10,11 @@ import { LightboxImage } from './LightboxImage'
 
 export type FilmographyTitle = CastingRowData & { episodeCount: number }
 
-export type FilmographyCharacter = {
-  characterId: number
-  characterName: string
-  characterImageUrl: string | null
+export type FilmographyGroup = {
+  id: number
+  name: string
+  imageUrl: string | null
+  href: string
   titles: FilmographyTitle[]
 }
 
@@ -24,11 +25,11 @@ export type FilmographyStats = {
 }
 
 export function Filmography({
-  characters,
+  groups,
   stats,
   defaultCompact,
 }: {
-  characters: FilmographyCharacter[]
+  groups: FilmographyGroup[]
   stats: FilmographyStats
   defaultCompact: boolean
 }) {
@@ -73,41 +74,41 @@ export function Filmography({
         </span>
       </div>
 
-      {characters.map((cg) => (
-        <div key={cg.characterId} className="space-y-0">
-          {/* Character heading */}
+      {groups.map((group) => (
+        <div key={group.id} className="space-y-0">
+          {/* Group heading */}
           <div className="flex items-center gap-2.5 pt-2 pb-2">
             <span className="w-[30px] h-[30px] rounded-full overflow-hidden relative shrink-0 bg-warm-100 dark:bg-warm-700">
-              {cg.characterImageUrl ? (
+              {group.imageUrl ? (
                 <Image
-                  src={cg.characterImageUrl}
-                  alt={cg.characterName}
+                  src={group.imageUrl}
+                  alt={group.name}
                   fill
                   className="object-cover"
                   sizes="30px"
                 />
               ) : (
-                <Placeholder name={cg.characterName} variant="avatar" />
+                <Placeholder name={group.name} variant="avatar" />
               )}
             </span>
             <Link
-              href={`/characters/${cg.characterId}`}
+              href={group.href}
               className="font-serif font-black text-[18px] text-steve hover:text-steve-hover transition-colors"
             >
-              {cg.characterName}
+              {group.name}
             </Link>
           </div>
 
           {/* Rows */}
           {compact ? (
             <div className="grid sm:grid-cols-2 sm:gap-x-6">
-              {cg.titles.map((t) => (
+              {group.titles.map((t) => (
                 <CompactTitleRow key={t.titleId} t={t} />
               ))}
             </div>
           ) : (
             <div>
-              {cg.titles.map((t) => (
+              {group.titles.map((t) => (
                 <CastingRow key={t.titleId} data={t} />
               ))}
             </div>

@@ -232,10 +232,11 @@ export default async function PersonPage({ params }: { params: { id: string } })
     : null
 
   // Plain-serializable shape for the Filmography client component.
-  const filmographyCharacters = characters.map((cg) => ({
-    characterId: cg.characterId,
-    characterName: cg.characterName,
-    characterImageUrl: cg.characterImageUrl,
+  const filmographyGroups = characters.map((cg) => ({
+    id: cg.characterId,
+    name: cg.characterName,
+    imageUrl: cg.characterImageUrl,
+    href: `/characters/${cg.characterId}`,
     titles: cg.titlesSorted.map((tg) => ({
       titleId: tg.titleId,
       title: {
@@ -390,7 +391,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
       {/* Filmography */}
       {characters.length > 0 && (
         <Filmography
-          characters={filmographyCharacters}
+          groups={filmographyGroups}
           stats={{
             distinctTitles: distinctTitles.size,
             appearances: person.castings.length,
