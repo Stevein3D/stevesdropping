@@ -264,7 +264,7 @@ export default async function CharacterPage({ params }: { params: { id: string }
               {character.name}
             </h1>
             {truncatedDescription && (
-              <p className="text-[13px] text-warm-500 dark:text-warm-500 leading-[1.5] max-w-[60ch]">
+              <p className="text-[13px] text-warm-600 dark:text-warm-400 leading-[1.5] max-w-[60ch]">
                 {truncatedDescription}
               </p>
             )}
