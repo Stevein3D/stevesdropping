@@ -13,7 +13,7 @@ type Summary = {
 type RowError = { entity: string; id: number | string; error: string }
 
 type Result =
-  | { ok: true; summary: Summary; errors: RowError[] }
+  | { ok: true; summary: Summary; errors: RowError[]; warnings?: string[] }
   | { ok: false; error: string }
 
 export default function ImportPage() {
@@ -131,6 +131,20 @@ export default function ImportPage() {
                   </div>
                 ))}
               </div>
+              {result.warnings && result.warnings.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-warm-600 dark:text-warm-500 uppercase tracking-wide">
+                    {result.warnings.length} warning{result.warnings.length !== 1 ? 's' : ''}
+                  </p>
+                  <div className="border border-cream-border dark:border-warm-700 rounded-lg overflow-y-auto max-h-64">
+                    {result.warnings.map((w, i) => (
+                      <div key={i} className="px-3 py-2 border-b border-cream-border dark:border-warm-700 last:border-b-0 text-xs text-warm-900 dark:text-warm-200">
+                        {w}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {result.errors.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-steve uppercase tracking-wide">

@@ -71,12 +71,49 @@ type CastingRow = {
   'Notes':        string | null
 }
 
+// Column headers each sheet is expected to carry. Used only to warn about
+// headers that don't match exactly (e.g. "Title Type " with a trailing space),
+// since a mismatched header silently reads as an empty column.
+const EXPECTED_COLUMNS: Record<string, string[]> = {
+  Person: [
+    'Person ID', 'Name', 'Person Type', 'Prefix', 'First Name', 'Middle Name', 'Last Name', 'Suffix',
+    'Birth Name', 'Birth Date', 'Death Date', 'Nationality', 'Birthplace', 'Industry', 'Specialty',
+    'Bio', 'Notable Achievement',
+  ],
+  Character: ['Character ID', 'Character Name', 'Character Type', 'Description'],
+  Title: [
+    'Title ID', 'Title Type', 'Title Sort', 'Title Name', 'Title Release Date', 'Title End Date',
+    'Genre', 'Title Description', 'Runtime (min)', 'Title Score',
+  ],
+  Episode: [
+    'Episode ID', 'Title ID', 'Season', 'Episode Number', 'Episode Title', 'Episode Description',
+    'Episode Release Date', 'Runtime (min)', 'Episode Score',
+  ],
+  Casting: ['Casting ID', 'Person ID', 'Character ID', 'Title ID', 'Episode ID', 'Notes'],
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getSheet<T>(wb: xlsx.WorkBook, name: string): T[] {
   const ws = wb.Sheets[name]
   if (!ws) return []
   return xlsx.utils.sheet_to_json<T>(ws, { defval: null })
+}
+
+function checkHeaders(wb: xlsx.WorkBook, name: string): string[] {
+  const ws = wb.Sheets[name]
+  if (!ws) return []
+  const [header = []] = xlsx.utils.sheet_to_json<unknown[]>(ws, { header: 1, blankrows: false })
+  const found = header.filter(h => h != null && String(h) !== '').map(String)
+  const expected = EXPECTED_COLUMNS[name]
+  return [
+    ...expected.filter(c => !found.includes(c)).map(c => `${name} sheet: missing column "${c}"`),
+    ...found.filter(c => !expected.includes(c)).map(c => `${name} sheet: unrecognized column ${JSON.stringify(c)} (ignored)`),
+  ]
+}
+
+function isBlank(value: string | null | undefined): boolean {
+  return !(value ?? '').toString().trim()
 }
 
 // Convert a cell to a JS Date. Accepts:
@@ -183,15 +220,21 @@ export async function POST(request: NextRequest) {
 
     type RowError = { entity: string; id: number | string; error: string }
     const errors: RowError[] = []
+    const warnings: string[] = Object.keys(EXPECTED_COLUMNS).flatMap(name => checkHeaders(wb, name))
+    // IDs of new rows whose type cell was blank and so fell back to the default.
+    const defaultedTypes: Record<'person' | 'character' | 'title', number[]> = { person: [], character: [], title: [] }
 
     // ── People ───────────────────────────────────────────────────────────────
 
     for (const row of personRows) {
       const id = row['Person ID']
       try {
+        const exists = await prisma.person.findUnique({ where: { id }, select: { personType: true } })
+        // A blank type keeps the stored one rather than resetting it to the default.
+        if (isBlank(row['Person Type']) && !exists) defaultedTypes.person.push(id)
         const data = {
           name:               row['Name'],
-          personType:         normalizeTypeList(row['Person Type'], 'actor'),
+          personType:         normalizeTypeList(row['Person Type'], exists?.personType ?? 'actor'),
           prefix:             row['Prefix'],
           firstName:          row['First Name'],
           middleName:         row['Middle Name'],
@@ -209,7 +252,6 @@ export async function POST(request: NextRequest) {
           bio:                row['Bio'],
           notableAchievement: row['Notable Achievement'],
         }
-        const exists = await prisma.person.findUnique({ where: { id }, select: { id: true } })
         if (exists) {
           await prisma.person.update({ where: { id }, data })
         } else {
@@ -225,12 +267,13 @@ export async function POST(request: NextRequest) {
     for (const row of characterRows) {
       const id = row['Character ID']
       try {
+        const exists = await prisma.character.findUnique({ where: { id }, select: { characterType: true } })
+        if (isBlank(row['Character Type']) && !exists) defaultedTypes.character.push(id)
         const data = {
           name:          row['Character Name'],
-          characterType: normalizeType(row['Character Type'], 'supporting'),
+          characterType: normalizeType(row['Character Type'], exists?.characterType ?? 'supporting'),
           description:   row['Description'],
         }
-        const exists = await prisma.character.findUnique({ where: { id }, select: { id: true } })
         if (exists) {
           await prisma.character.update({ where: { id }, data })
         } else {
@@ -251,8 +294,9 @@ export async function POST(request: NextRequest) {
         const rawRuntime  = row['Runtime (min)']
         const exists = await prisma.title.findUnique({
           where: { id },
-          select: { id: true, year: true },
+          select: { id: true, year: true, titleType: true },
         })
+        if (isBlank(row['Title Type']) && !exists) defaultedTypes.title.push(id)
         // Preserve existing year when releaseDate is null but the record already has one.
         const year = releaseDate
           ? releaseDate.getUTCFullYear()
@@ -263,7 +307,7 @@ export async function POST(request: NextRequest) {
           year,
           releaseDate,
           endDate,
-          titleType:   normalizeType(row['Title Type'], 'film'),
+          titleType:   normalizeType(row['Title Type'], exists?.titleType ?? 'film'),
           genre:       row['Genre'],
           description: row['Title Description'],
           runtime:     (rawRuntime != null && !isNaN(Number(rawRuntime))) ? Number(rawRuntime) : null,
@@ -338,6 +382,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const defaults = { person: 'actor', character: 'supporting', title: 'film' } as const
+    for (const entity of ['person', 'character', 'title'] as const) {
+      const ids = defaultedTypes[entity]
+      if (ids.length > 0) {
+        warnings.push(`${ids.length} new ${entity} row(s) had a blank type and were saved as "${defaults[entity]}": IDs ${ids.join(', ')}`)
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       summary: {
@@ -348,6 +400,7 @@ export async function POST(request: NextRequest) {
         castings:   castingRows.length,
       },
       errors,
+      warnings,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Import failed'
