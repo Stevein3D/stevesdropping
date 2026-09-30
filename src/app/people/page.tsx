@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { ResultCount, pluralize } from '@/components/ui/ResultCount'
 import { StevesToggle } from '@/components/ui/StevesToggle'
 import { splitPersonTypes, personTypeLabel, personTypeFilter, STEVE_NAMES } from '@/lib/personTypes'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
@@ -220,38 +221,43 @@ export default async function PeoplePage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+      <div className="flex items-baseline gap-4 border-b border-cream-border dark:border-warm-700 pb-2">
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">People</h1>
-        <span className="text-xs text-warm-600 dark:text-warm-500">{total} results</span>
+        <ResultCount
+          total={total}
+          noun={type ? { one: personTypeLabel(type), many: pluralize(personTypeLabel(type)) } : undefined}
+        />
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap items-center">
-        <SearchInput placeholder="Search by name…" />
-        {typeOptions.length > 0 && (
+      <div className="space-y-3">
+        <div className="flex gap-3 flex-wrap items-center">
+          <SearchInput placeholder="Search by name…" />
+          {typeOptions.length > 0 && (
+            <FilterDropdown
+              paramName="type"
+              options={[{ value: '', label: 'All types' }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+            />
+          )}
           <FilterDropdown
-            paramName="type"
-            options={[{ value: '', label: 'All types' }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+            paramName="sort"
+            options={SORT_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
           />
-        )}
-        <FilterDropdown
-          paramName="sort"
-          options={SORT_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-        />
-        {isNameSort && Object.keys(letterPages).length > 0 && (
-          <LetterJumper letterPages={letterPages} basePath="/people" />
-        )}
-        {(search || type || sort || steves) && (
-          <Link
-            href="/people"
-            className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
-          >
-            Clear
-          </Link>
-        )}
-      </div>
-      <div className="-mt-5">
-        <StevesToggle />
+          {isNameSort && Object.keys(letterPages).length > 0 && (
+            <LetterJumper letterPages={letterPages} basePath="/people" />
+          )}
+          {(search || type || sort || steves) && (
+            <Link
+              href="/people"
+              className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
+            >
+              Clear
+            </Link>
+          )}
+        </div>
+        <div>
+          <StevesToggle />
+        </div>
       </div>
 
       <Pagination page={page} totalPages={totalPages} basePath="/people" />

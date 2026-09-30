@@ -2,20 +2,29 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
-// Checkbox-styled toggle for the "steves" query param — filters the list down
-// to entries that are Steve or Steve-adjacent by name.
-export function StevesToggle() {
+type Props = {
+  paramName: string
+  label: string
+  // Default-on toggles are checked while the param is absent and write
+  // `param=0` when unchecked, so the default state keeps a clean URL.
+  defaultOn?: boolean
+}
+
+// Checkbox-styled toggle bound to a single query param.
+export function ParamToggle({ paramName, label, defaultOn = false }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const active = searchParams.get('steves') === '1'
+  const raw = searchParams.get(paramName)
+  const active = defaultOn ? raw !== '0' : raw === '1'
 
   function toggle() {
     const params = new URLSearchParams(searchParams.toString())
-    if (active) {
-      params.delete('steves')
+    const next = !active
+    if (next === defaultOn) {
+      params.delete(paramName)
     } else {
-      params.set('steves', '1')
+      params.set(paramName, next ? '1' : '0')
     }
     params.delete('page')
     const qs = params.toString()
@@ -42,7 +51,12 @@ export function StevesToggle() {
           </svg>
         )}
       </span>
-      <span>Just the Steves, please</span>
+      <span>{label}</span>
     </button>
   )
+}
+
+// Filters the list down to entries that are Steve or Steve-adjacent by name.
+export function StevesToggle() {
+  return <ParamToggle paramName="steves" label="Just the Steves, please" />
 }

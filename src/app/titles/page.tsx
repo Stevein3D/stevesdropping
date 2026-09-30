@@ -5,7 +5,8 @@ import { TitleBadge } from '@/components/ui/TitleBadge'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
-import { StevesToggle } from '@/components/ui/StevesToggle'
+import { ResultCount } from '@/components/ui/ResultCount'
+import { StevesToggle, ParamToggle } from '@/components/ui/StevesToggle'
 import { humanizeType } from '@/lib/humanizeType'
 import { STEVE_NAME_REGEX } from '@/lib/personTypes'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
@@ -98,6 +99,15 @@ const SORT_OPTIONS: { value: SortOption | ''; label: string }[] = [
   { value: 'recent',     label: 'Recently added' },
 ]
 
+// Search matches the title name, plus episode titles unless the visitor has
+// switched episodes off (e.g. "Wonder Woman" pulling in a talk-show episode).
+function searchCondition(search: string, includeEpisodes: boolean): Prisma.Sql {
+  const pattern = '%' + search + '%'
+  return includeEpisodes
+    ? Prisma.sql`(t.name ILIKE ${pattern} OR e."episodeTitle" ILIKE ${pattern})`
+    : Prisma.sql`t.name ILIKE ${pattern}`
+}
+
 // A–Z and Z–A use raw SQL so LOWER() can be applied to titleSort/name.
 // LEFT JOINs episodes so a search can match on episodeTitle as well.
 async function getNameSortedIds(
@@ -105,11 +115,12 @@ async function getNameSortedIds(
   type: string | undefined,
   genre: string | undefined,
   steves: boolean,
+  includeEpisodes: boolean,
   dir: 'ASC' | 'DESC',
   page: number,
 ): Promise<number[]> {
   const conditions: Prisma.Sql[] = []
-  if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
+  if (search) conditions.push(searchCondition(search, includeEpisodes))
   if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
   if (genre)  conditions.push(Prisma.sql`t.genre ILIKE ${'%' + genre + '%'}`)
   if (steves) conditions.push(Prisma.sql`t.name ~* ${STEVE_NAME_REGEX}`)
@@ -146,10 +157,11 @@ async function getLetterPageMap(
   type: string | undefined,
   genre: string | undefined,
   steves: boolean,
+  includeEpisodes: boolean,
   dir: 'ASC' | 'DESC',
 ): Promise<Record<string, number>> {
   const conditions: Prisma.Sql[] = []
-  if (search) conditions.push(Prisma.sql`(t.name ILIKE ${'%' + search + '%'} OR e."episodeTitle" ILIKE ${'%' + search + '%'})`)
+  if (search) conditions.push(searchCondition(search, includeEpisodes))
   if (type)   conditions.push(Prisma.sql`t."titleType"::text = ${type}`)
   if (genre)  conditions.push(Prisma.sql`t.genre ILIKE ${'%' + genre + '%'}`)
   if (steves) conditions.push(Prisma.sql`t.name ~* ${STEVE_NAME_REGEX}`)
@@ -214,10 +226,11 @@ function getOrderBy(sort: string) {
 export default async function TitlesPage({
   searchParams,
 }: {
-  searchParams: { search?: string; type?: string; genre?: string; sort?: string; steves?: string; page?: string }
+  searchParams: { search?: string; type?: string; genre?: string; sort?: string; steves?: string; episodes?: string; page?: string }
 }) {
   const { search = '', type, genre, sort = '' } = searchParams
   const steves = searchParams.steves === '1'
+  const includeEpisodes = searchParams.episodes !== '0'
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
 
   // Prisma can't express the word-boundary regex the steves filter needs, so
@@ -235,7 +248,9 @@ export default async function TitlesPage({
     ...(search && {
       OR: [
         { name: { contains: search, mode: 'insensitive' as const } },
-        { episodes: { some: { episodeTitle: { contains: search, mode: 'insensitive' as const } } } },
+        ...(includeEpisodes
+          ? [{ episodes: { some: { episodeTitle: { contains: search, mode: 'insensitive' as const } } } }]
+          : []),
       ],
     }),
   }
@@ -245,7 +260,7 @@ export default async function TitlesPage({
   // When searching, fetch the first matching episode (for the single-match
   // display) plus a true count of all matches (for the "N matching episodes"
   // indicator — array length would cap at `take` and undercount).
-  const episodeWhere = search
+  const episodeWhere = search && includeEpisodes
     ? { episodeTitle: { contains: search, mode: 'insensitive' as const } }
     : { id: { lt: 0 } }
 
@@ -271,7 +286,7 @@ export default async function TitlesPage({
   const [total, titles, letterPages, genreRows, typeRows] = await Promise.all([
     prisma.title.count({ where }),
     isNameSort
-      ? getNameSortedIds(search, type, genre, steves, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
+      ? getNameSortedIds(search, type, genre, steves, includeEpisodes, sort === 'name_desc' ? 'DESC' : 'ASC', page).then(async (ids) => {
           if (ids.length === 0) return []
           const rows = await prisma.title.findMany({ where: { id: { in: ids } }, select })
           const byId = new Map(rows.map(t => [t.id, t]))
@@ -284,7 +299,7 @@ export default async function TitlesPage({
           take: PAGE_SIZE,
         }),
     isNameSort
-      ? getLetterPageMap(search, type, genre, steves, sort === 'name_desc' ? 'DESC' : 'ASC')
+      ? getLetterPageMap(search, type, genre, steves, includeEpisodes, sort === 'name_desc' ? 'DESC' : 'ASC')
       : Promise.resolve({} as Record<string, number>),
     prisma.title.findMany({
       where: { genre: { not: null } },
@@ -328,50 +343,53 @@ export default async function TitlesPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+      <div className="flex items-baseline gap-4 border-b border-cream-border dark:border-warm-700 pb-2">
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Titles</h1>
-        <span className="text-xs text-warm-600 dark:text-warm-500">{total} results</span>
+        <ResultCount total={total} />
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap items-center">
-        <SearchInput placeholder="Search titles…" />
-        {typeOptions.length > 0 && (
+      <div className="space-y-3">
+        <div className="flex gap-3 flex-wrap items-center">
+          <SearchInput placeholder="Search titles…" />
+          {typeOptions.length > 0 && (
+            <FilterDropdown
+              paramName="type"
+              options={[{ value: '', label: 'All types' }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+            />
+          )}
+          {genreOptions.length > 0 && (
+            <FilterDropdown
+              paramName="genre"
+              options={[{ value: '', label: 'All genres' }, ...genreOptions.map(g => ({ value: g, label: g }))]}
+            />
+          )}
           <FilterDropdown
-            paramName="type"
-            options={[{ value: '', label: 'All types' }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+            paramName="sort"
+            options={SORT_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
           />
-        )}
-        {genreOptions.length > 0 && (
-          <FilterDropdown
-            paramName="genre"
-            options={[{ value: '', label: 'All genres' }, ...genreOptions.map(g => ({ value: g, label: g }))]}
-          />
-        )}
-        <FilterDropdown
-          paramName="sort"
-          options={SORT_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-        />
-        {isNameSort && Object.keys(letterPages).length > 0 && (
-          <LetterJumper letterPages={letterPages} basePath="/titles" />
-        )}
-        {(search || type || genre || sort || steves) && (
-          <Link
-            href="/titles"
-            className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
-          >
-            Clear
-          </Link>
-        )}
-      </div>
-      <div className="-mt-5">
-        <StevesToggle />
+          {isNameSort && Object.keys(letterPages).length > 0 && (
+            <LetterJumper letterPages={letterPages} basePath="/titles" />
+          )}
+          {(search || type || genre || sort || steves || !includeEpisodes) && (
+            <Link
+              href="/titles"
+              className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
+            >
+              Clear
+            </Link>
+          )}
+        </div>
+        <div className="flex gap-3 flex-wrap">
+          <StevesToggle />
+          <ParamToggle paramName="episodes" label="Search episode titles too" defaultOn />
+        </div>
       </div>
 
       <Pagination page={page} totalPages={totalPages} basePath="/titles" />
 
       {/* Grid */}
-      <FadeInGrid key={`${search}-${type}-${genre ?? ''}-${sort}-${steves}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <FadeInGrid key={`${search}-${type}-${genre ?? ''}-${sort}-${steves}-${includeEpisodes}-${page}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {titles.map((title) => {
           const castingSummary = (castingSummaries.get(title.id) ?? []).join(' • ') || null
           const matchingEpisodes = title.episodes

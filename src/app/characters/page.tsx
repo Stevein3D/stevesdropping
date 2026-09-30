@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { ResultCount, pluralize } from '@/components/ui/ResultCount'
 import { StevesToggle } from '@/components/ui/StevesToggle'
 import { humanizeType } from '@/lib/humanizeType'
 import { STEVE_NAME_REGEX } from '@/lib/personTypes'
@@ -37,6 +38,17 @@ const CHARACTER_TYPE_LABELS: Record<string, string> = {
   antagonist:  'Antagonist',
   cameo:       'Cameo',
   other:       'Other',
+}
+
+// Count-callout wording for a character-type filter. Adjective-style types read
+// better with "character" attached ("16 Supporting characters!").
+const ADJECTIVE_CHARACTER_TYPES = new Set(['supporting', 'other'])
+
+function characterTypeNoun(type: string): { one: string; many: string } {
+  const label = CHARACTER_TYPE_LABELS[type] ?? humanizeType(type)
+  return ADJECTIVE_CHARACTER_TYPES.has(type)
+    ? { one: `${label} character`, many: `${label} characters` }
+    : { one: label, many: pluralize(label) }
 }
 
 
@@ -216,38 +228,40 @@ export default async function CharactersPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-baseline justify-between border-b border-cream-border dark:border-warm-700 pb-2">
+      <div className="flex items-baseline gap-4 border-b border-cream-border dark:border-warm-700 pb-2">
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Characters</h1>
-        <span className="text-xs text-warm-600 dark:text-warm-500">{total} results</span>
+        <ResultCount total={total} noun={type ? characterTypeNoun(type) : undefined} />
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap items-center">
-        <SearchInput placeholder="Search characters…" />
-        {typeOptions.length > 0 && (
+      <div className="space-y-3">
+        <div className="flex gap-3 flex-wrap items-center">
+          <SearchInput placeholder="Search characters…" />
+          {typeOptions.length > 0 && (
+            <FilterDropdown
+              paramName="type"
+              options={[{ value: '', label: 'All types' }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+            />
+          )}
           <FilterDropdown
-            paramName="type"
-            options={[{ value: '', label: 'All types' }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+            paramName="sort"
+            options={SORT_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
           />
-        )}
-        <FilterDropdown
-          paramName="sort"
-          options={SORT_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-        />
-        {isNameSort && Object.keys(letterPages).length > 0 && (
-          <LetterJumper letterPages={letterPages} basePath="/characters" />
-        )}
-        {(search || type || sort || steves) && (
-          <Link
-            href="/characters"
-            className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
-          >
-            Clear
-          </Link>
-        )}
-      </div>
-      <div className="-mt-5">
-        <StevesToggle />
+          {isNameSort && Object.keys(letterPages).length > 0 && (
+            <LetterJumper letterPages={letterPages} basePath="/characters" />
+          )}
+          {(search || type || sort || steves) && (
+            <Link
+              href="/characters"
+              className="text-sm text-warm-600 dark:text-warm-500 hover:text-steve px-4 py-2 rounded-lg border border-cream-border dark:border-warm-700 hover:border-steve dark:hover:border-warm-200 transition-colors"
+            >
+              Clear
+            </Link>
+          )}
+        </div>
+        <div>
+          <StevesToggle />
+        </div>
       </div>
 
       <Pagination page={page} totalPages={totalPages} basePath="/characters" />
