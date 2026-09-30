@@ -7,7 +7,8 @@ import { TitleBadge } from '@/components/ui/TitleBadge'
 import { BackButton } from '@/components/ui/BackButton'
 import { Placeholder } from '@/components/ui/Placeholder'
 import { EpisodesBySeason, EpisodeRow, type EpisodeForList } from '@/components/ui/EpisodesBySeason'
-import { CastTile, yearSpan } from '@/components/ui/CastTile'
+import { yearSpan } from '@/components/ui/CastTile'
+import { TitleCastTile } from '@/components/ui/TitleCastTile'
 
 export const revalidate = 86400
 
@@ -140,7 +141,7 @@ export default async function TitlePage({
     personId: number
     characterId: number
     person: { name: string; imageUrl: string | null }
-    character: { name: string }
+    character: { name: string; imageUrl: string | null }
     castingImageUrl: string | null
     appearanceCount: number
     yearStart: number | null
@@ -408,14 +409,15 @@ export default async function TitlePage({
             style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
           >
             {cast.map((c) => (
-              <CastTile
+              <TitleCastTile
                 key={c.key}
                 tile={{
-                  href: `/people/${c.personId}`,
-                  banner: c.character.name,
-                  imageUrl: c.castingImageUrl ?? c.person.imageUrl,
-                  imageAlt: `${c.person.name} as ${c.character.name}`,
-                  name: c.person.name,
+                  personHref: `/people/${c.personId}`,
+                  characterHref: `/characters/${c.characterId}`,
+                  personName: c.person.name,
+                  characterName: c.character.name,
+                  personImageUrl: c.castingImageUrl ?? c.person.imageUrl,
+                  characterImageUrl: c.character.imageUrl,
                   years: yearSpan([c.yearStart, c.yearEnd]),
                   appearanceCount: c.appearanceCount,
                 }}
