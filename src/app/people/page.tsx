@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
-import { ResultCount, pluralize } from '@/components/ui/ResultCount'
+import { ResultCount } from '@/components/ui/ResultCount'
+import { typeCountText } from '@/lib/typeCounts'
 import { StevesToggle } from '@/components/ui/StevesToggle'
 import { splitPersonTypes, personTypeLabel, personTypeFilter, STEVE_NAMES } from '@/lib/personTypes'
 import { FadeInGrid } from '@/components/ui/FadeInGrid'
@@ -225,7 +226,7 @@ export default async function PeoplePage({
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">People</h1>
         <ResultCount
           total={total}
-          noun={type ? { one: personTypeLabel(type), many: pluralize(personTypeLabel(type)) } : undefined}
+          filterText={type ? typeCountText('person', type, personTypeLabel(type), total) : undefined}
         />
       </div>
 

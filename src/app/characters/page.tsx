@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { Pagination } from '@/components/ui/Pagination'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
-import { ResultCount, pluralize } from '@/components/ui/ResultCount'
+import { ResultCount } from '@/components/ui/ResultCount'
+import { typeCountText } from '@/lib/typeCounts'
 import { StevesToggle } from '@/components/ui/StevesToggle'
 import { humanizeType } from '@/lib/humanizeType'
 import { STEVE_NAME_REGEX } from '@/lib/personTypes'
@@ -38,17 +39,6 @@ const CHARACTER_TYPE_LABELS: Record<string, string> = {
   antagonist:  'Antagonist',
   cameo:       'Cameo',
   other:       'Other',
-}
-
-// Count-callout wording for a character-type filter. Adjective-style types read
-// better with "character" attached ("16 Supporting characters!").
-const ADJECTIVE_CHARACTER_TYPES = new Set(['supporting', 'other'])
-
-function characterTypeNoun(type: string): { one: string; many: string } {
-  const label = CHARACTER_TYPE_LABELS[type] ?? humanizeType(type)
-  return ADJECTIVE_CHARACTER_TYPES.has(type)
-    ? { one: `${label} character`, many: `${label} characters` }
-    : { one: label, many: pluralize(label) }
 }
 
 
@@ -230,7 +220,10 @@ export default async function CharactersPage({
     <div className="space-y-8">
       <div className="flex items-baseline gap-4 border-b border-cream-border dark:border-warm-700 pb-2">
         <h1 className="font-serif text-3xl font-bold text-warm-900 dark:text-warm-200">Characters</h1>
-        <ResultCount total={total} noun={type ? characterTypeNoun(type) : undefined} />
+        <ResultCount
+          total={total}
+          filterText={type ? typeCountText('character', type, CHARACTER_TYPE_LABELS[type] ?? humanizeType(type), total) : undefined}
+        />
       </div>
 
       {/* Filters */}
